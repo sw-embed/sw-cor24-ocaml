@@ -76,14 +76,6 @@ var
 
 { --- Internal helpers --- }
 
-function src_ch: char;
-begin
-  if pos < src_len then
-    src_ch := src[pos]
-  else
-    src_ch := chr(0)
-end;
-
 function is_digit(c: char): boolean;
 begin
   is_digit := (c >= '0') and (c <= '9')
@@ -153,12 +145,9 @@ begin
   until not moved
 end;
 
-{ Check if tok_id matches a keyword and return its token kind,
-  or TK_IDENT if not a keyword. }
 function classify_ident: integer;
 begin
   classify_ident := TK_IDENT;
-
   if tok_id_len = 2 then
   begin
     if (tok_id[0] = 'i') and (tok_id[1] = 'f') then
@@ -211,18 +200,16 @@ begin
   tok_int := 0;
   tok_id_len := 0;
 
-  { Read entire input into src buffer }
   while not eof do
   begin
     read(ch);
-    if ch = chr(4) then
+    if ch <> chr(4) then
     begin
-      { EOT marker -- stop reading }
-    end
-    else if src_len < SRC_MAX then
-    begin
-      src[src_len] := ch;
-      src_len := src_len + 1
+      if src_len < SRC_MAX then
+      begin
+        src[src_len] := ch;
+        src_len := src_len + 1
+      end
     end
   end
 end;
@@ -271,89 +258,76 @@ begin
     exit
   end;
 
-  { Operators and delimiters }
-  case c of
-    '+': begin tok := TK_PLUS;  pos := pos + 1 end;
-    '*': begin tok := TK_STAR;  pos := pos + 1 end;
-    '/': begin tok := TK_SLASH; pos := pos + 1 end;
-    '(': begin tok := TK_LPAREN; pos := pos + 1 end;
-    ')': begin tok := TK_RPAREN; pos := pos + 1 end;
-    ';': begin tok := TK_SEMI;  pos := pos + 1 end;
-    '-':
-      begin
-        pos := pos + 1;
-        if (pos < src_len) and (src[pos] = '>') then
-        begin
-          tok := TK_ARROW;
-          pos := pos + 1
-        end
-        else
-          tok := TK_MINUS
-      end;
-    '=':
-      begin
-        tok := TK_EQ;
-        pos := pos + 1
-      end;
-    '<':
-      begin
-        pos := pos + 1;
-        if (pos < src_len) and (src[pos] = '>') then
-        begin
-          tok := TK_NEQ;
-          pos := pos + 1
-        end
-        else if (pos < src_len) and (src[pos] = '=') then
-        begin
-          tok := TK_LE;
-          pos := pos + 1
-        end
-        else
-          tok := TK_LT
-      end;
-    '>':
-      begin
-        pos := pos + 1;
-        if (pos < src_len) and (src[pos] = '=') then
-        begin
-          tok := TK_GE;
-          pos := pos + 1
-        end
-        else
-          tok := TK_GT
-      end;
-    '&':
-      begin
-        pos := pos + 1;
-        if (pos < src_len) and (src[pos] = '&') then
-        begin
-          tok := TK_ANDAND;
-          pos := pos + 1
-        end
-        else
-        begin
-          tok := TK_ERROR;
-          pos := pos + 1
-        end
-      end;
-    '|':
-      begin
-        pos := pos + 1;
-        if (pos < src_len) and (src[pos] = '|') then
-        begin
-          tok := TK_OROR;
-          pos := pos + 1
-        end
-        else
-        begin
-          tok := TK_ERROR;
-          pos := pos + 1
-        end
-      end
-  else
-    begin
+  { Simple single-char operators and delimiters }
+  if c = '+' then
+  begin tok := TK_PLUS; pos := pos + 1; exit end;
+  if c = '*' then
+  begin tok := TK_STAR; pos := pos + 1; exit end;
+  if c = '/' then
+  begin tok := TK_SLASH; pos := pos + 1; exit end;
+  if c = '(' then
+  begin tok := TK_LPAREN; pos := pos + 1; exit end;
+  if c = ')' then
+  begin tok := TK_RPAREN; pos := pos + 1; exit end;
+  if c = ';' then
+  begin tok := TK_SEMI; pos := pos + 1; exit end;
+  if c = '=' then
+  begin tok := TK_EQ; pos := pos + 1; exit end;
+
+  { Multi-char operators }
+  if c = '-' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '>') then
+    begin tok := TK_ARROW; pos := pos + 1 end
+    else
+      tok := TK_MINUS;
+    exit
+  end;
+
+  if c = '<' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '>') then
+    begin tok := TK_NEQ; pos := pos + 1 end
+    else if (pos < src_len) and (src[pos] = '=') then
+    begin tok := TK_LE; pos := pos + 1 end
+    else
+      tok := TK_LT;
+    exit
+  end;
+
+  if c = '>' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '=') then
+    begin tok := TK_GE; pos := pos + 1 end
+    else
+      tok := TK_GT;
+    exit
+  end;
+
+  if c = '&' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '&') then
+    begin tok := TK_ANDAND; pos := pos + 1 end
+    else
       tok := TK_ERROR;
-      pos := pos + 1
-    end
-  end
+    exit
+  end;
+
+  if c = '|' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '|') then
+    begin tok := TK_OROR; pos := pos + 1 end
+    else
+      tok := TK_ERROR;
+    exit
+  end;
+
+  { Unknown character }
+  tok := TK_ERROR;
+  pos := pos + 1
 end;

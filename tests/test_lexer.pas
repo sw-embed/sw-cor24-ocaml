@@ -1,8 +1,7 @@
 program TestLexer;
 { Test harness for the OCaml lexer.
   Reads OCaml source from stdin, tokenizes it, prints each token.
-  Format: token_kind_number value
-  Token kinds printed as integers to avoid string literal limit. }
+  Format: TOKEN_NAME value }
 
 const
   TK_EOF    = 0;
@@ -186,125 +185,153 @@ end;
 procedure lex_next;
 var
   c: char;
-  done: boolean;
 begin
   skip_ws_and_comments;
 
   if pos >= src_len then
   begin
     tok := TK_EOF;
-    done := true
-  end
-  else
-    done := false;
-
-  if not done then
-  begin
-    c := src[pos];
-    if is_digit(c) then
-    begin
-      tok := TK_INT;
-      tok_int := 0;
-      while (pos < src_len) and is_digit(src[pos]) do
-      begin
-        tok_int := tok_int * 10 + (ord(src[pos]) - ord('0'));
-        pos := pos + 1
-      end;
-      done := true
-    end
+    exit
   end;
 
-  if not done then
+  c := src[pos];
+
+  { Integer literal }
+  if is_digit(c) then
   begin
-    c := src[pos];
-    if is_alpha(c) then
+    tok := TK_INT;
+    tok_int := 0;
+    while (pos < src_len) and is_digit(src[pos]) do
     begin
-      tok_id_len := 0;
-      while (pos < src_len) and is_alnum(src[pos]) do
-      begin
-        if tok_id_len < ID_MAX then
-        begin
-          tok_id[tok_id_len] := src[pos];
-          tok_id_len := tok_id_len + 1
-        end;
-        pos := pos + 1
-      end;
-      tok := classify_ident;
-      done := true
-    end
+      tok_int := tok_int * 10 + (ord(src[pos]) - ord('0'));
+      pos := pos + 1
+    end;
+    exit
   end;
 
-  if not done then
+  { Identifier or keyword }
+  if is_alpha(c) then
   begin
-    c := src[pos];
-    if c = '+' then
-    begin tok := TK_PLUS; pos := pos + 1; done := true end
-    else if c = '*' then
-    begin tok := TK_STAR; pos := pos + 1; done := true end
-    else if c = '/' then
-    begin tok := TK_SLASH; pos := pos + 1; done := true end
-    else if c = '(' then
-    begin tok := TK_LPAREN; pos := pos + 1; done := true end
-    else if c = ')' then
-    begin tok := TK_RPAREN; pos := pos + 1; done := true end
-    else if c = ';' then
-    begin tok := TK_SEMI; pos := pos + 1; done := true end
-    else if c = '-' then
+    tok_id_len := 0;
+    while (pos < src_len) and is_alnum(src[pos]) do
     begin
-      pos := pos + 1;
-      if (pos < src_len) and (src[pos] = '>') then
-      begin tok := TK_ARROW; pos := pos + 1 end
-      else
-        tok := TK_MINUS;
-      done := true
-    end
-    else if c = '=' then
-    begin tok := TK_EQ; pos := pos + 1; done := true end
-    else if c = '<' then
-    begin
-      pos := pos + 1;
-      if (pos < src_len) and (src[pos] = '>') then
-      begin tok := TK_NEQ; pos := pos + 1 end
-      else if (pos < src_len) and (src[pos] = '=') then
-      begin tok := TK_LE; pos := pos + 1 end
-      else
-        tok := TK_LT;
-      done := true
-    end
-    else if c = '>' then
-    begin
-      pos := pos + 1;
-      if (pos < src_len) and (src[pos] = '=') then
-      begin tok := TK_GE; pos := pos + 1 end
-      else
-        tok := TK_GT;
-      done := true
-    end
-    else if c = '&' then
-    begin
-      pos := pos + 1;
-      if (pos < src_len) and (src[pos] = '&') then
-      begin tok := TK_ANDAND; pos := pos + 1 end
-      else
-        tok := TK_ERROR;
-      done := true
-    end
-    else if c = '|' then
-    begin
-      pos := pos + 1;
-      if (pos < src_len) and (src[pos] = '|') then
-      begin tok := TK_OROR; pos := pos + 1 end
-      else
-        tok := TK_ERROR;
-      done := true
-    end
+      if tok_id_len < ID_MAX then
+      begin
+        tok_id[tok_id_len] := src[pos];
+        tok_id_len := tok_id_len + 1
+      end;
+      pos := pos + 1
+    end;
+    tok := classify_ident;
+    exit
+  end;
+
+  { Operators and delimiters }
+  if c = '+' then
+  begin tok := TK_PLUS; pos := pos + 1; exit end;
+  if c = '*' then
+  begin tok := TK_STAR; pos := pos + 1; exit end;
+  if c = '/' then
+  begin tok := TK_SLASH; pos := pos + 1; exit end;
+  if c = '(' then
+  begin tok := TK_LPAREN; pos := pos + 1; exit end;
+  if c = ')' then
+  begin tok := TK_RPAREN; pos := pos + 1; exit end;
+  if c = ';' then
+  begin tok := TK_SEMI; pos := pos + 1; exit end;
+  if c = '=' then
+  begin tok := TK_EQ; pos := pos + 1; exit end;
+
+  if c = '-' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '>') then
+    begin tok := TK_ARROW; pos := pos + 1 end
     else
-    begin
+      tok := TK_MINUS;
+    exit
+  end;
+
+  if c = '<' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '>') then
+    begin tok := TK_NEQ; pos := pos + 1 end
+    else if (pos < src_len) and (src[pos] = '=') then
+    begin tok := TK_LE; pos := pos + 1 end
+    else
+      tok := TK_LT;
+    exit
+  end;
+
+  if c = '>' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '=') then
+    begin tok := TK_GE; pos := pos + 1 end
+    else
+      tok := TK_GT;
+    exit
+  end;
+
+  if c = '&' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '&') then
+    begin tok := TK_ANDAND; pos := pos + 1 end
+    else
       tok := TK_ERROR;
-      pos := pos + 1;
-      done := true
-    end
-  end
+    exit
+  end;
+
+  if c = '|' then
+  begin
+    pos := pos + 1;
+    if (pos < src_len) and (src[pos] = '|') then
+    begin tok := TK_OROR; pos := pos + 1 end
+    else
+      tok := TK_ERROR;
+    exit
+  end;
+
+  { Unknown character }
+  tok := TK_ERROR;
+  pos := pos + 1
+end;
+
+procedure print_tok_name;
+begin
+  if tok = TK_EOF then write('EOF')
+  else if tok = TK_INT then write('INT')
+  else if tok = TK_IDENT then write('IDENT')
+  else if tok = TK_LET then write('LET')
+  else if tok = TK_REC then write('REC')
+  else if tok = TK_IN then write('IN')
+  else if tok = TK_IF then write('IF')
+  else if tok = TK_THEN then write('THEN')
+  else if tok = TK_ELSE then write('ELSE')
+  else if tok = TK_FUN then write('FUN')
+  else if tok = TK_TRUE then write('TRUE')
+  else if tok = TK_FALSE then write('FALSE')
+  else if tok = TK_NOT then write('NOT')
+  else if tok = TK_MOD then write('MOD')
+  else if tok = TK_PLUS then write('PLUS')
+  else if tok = TK_MINUS then write('MINUS')
+  else if tok = TK_STAR then write('STAR')
+  else if tok = TK_SLASH then write('SLASH')
+  else if tok = TK_EQ then write('EQ')
+  else if tok = TK_NEQ then write('NEQ')
+  else if tok = TK_LT then write('LT')
+  else if tok = TK_GT then write('GT')
+  else if tok = TK_LE then write('LE')
+  else if tok = TK_GE then write('GE')
+  else if tok = TK_ANDAND then write('ANDAND')
+  else if tok = TK_OROR then write('OROR')
+  else if tok = TK_ARROW then write('ARROW')
+  else if tok = TK_LPAREN then write('LPAREN')
+  else if tok = TK_RPAREN then write('RPAREN')
+  else if tok = TK_SEMI then write('SEMI')
+  else if tok = TK_ERROR then write('ERROR')
 end;
 
 procedure print_tok_id;
@@ -322,7 +349,7 @@ begin
   lex_next;
   while tok <> TK_EOF do
   begin
-    write(tok);
+    print_tok_name;
     if tok = TK_INT then
     begin
       write(' ');
@@ -338,5 +365,5 @@ begin
       writeln;
     lex_next
   end;
-  writeln(0)
+  writeln('EOF')
 end.

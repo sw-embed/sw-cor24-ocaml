@@ -1,6 +1,6 @@
 number = 2
 slug = "lexer"
-status = "in-progress"
+status = "blocked"
 description = """
 Implement the OCaml tokenizer in Pascal.
 

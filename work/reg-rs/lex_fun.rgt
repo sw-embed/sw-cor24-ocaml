@@ -1,0 +1,2 @@
+command = "./scripts/run-lexer-test.sh tests/lex_fun.ml 200000000"
+exit_code = 0

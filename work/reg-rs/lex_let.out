@@ -1,0 +1,10 @@
+LET let
+IDENT x
+EQ
+INT 41
+PLUS
+INT 1
+IN in
+IDENT print_int
+IDENT x
+EOF

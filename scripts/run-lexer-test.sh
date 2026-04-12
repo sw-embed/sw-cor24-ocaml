@@ -76,4 +76,6 @@ printf '\x00\x00\x01' > "$TMP/code_ptr.bin"
   -u "${ML_INPUT}"$'\x04' --speed 0 -n "$MAX_INSTRS" 2>&1 | \
   grep -v '^\[' | grep -v '^Assembled' | grep -v '^Running' | \
   grep -v '^Executed' | grep -v '^Loaded' | grep -v '^PVM OK' | \
+  grep -v '^UART output: PVM OK' | \
+  grep -v '^CPU halted' | \
   grep -v '^$' | grep -v '^HALT$'
