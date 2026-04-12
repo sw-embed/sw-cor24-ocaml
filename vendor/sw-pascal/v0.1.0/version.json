@@ -1,0 +1,27 @@
+{
+  "name": "sw-pascal",
+  "version": "v0.1.0",
+  "description": "Pascal compiler targeting P-code VM (p24p), plus runtime library",
+  "repo": "https://github.com/sw-embed/sw-cor24-pascal.git",
+  "repo_path_local": "../sw-cor24-pascal",
+  "commit": "f0e9688597c053365b349639103adc9c77812a5d",
+  "tag": "TBD",
+  "build_cmd": "TBD",
+  "binary_src": "TBD",
+  "artifacts": {
+    "p24p_s": "compiler/p24p.s",
+    "runtime_spc": "runtime/runtime.spc",
+    "runtime_spi": "runtime/runtime.spi"
+  },
+  "headers_src": null,
+  "docs_src": "compiler/docs",
+  "platforms": {
+    "darwin-arm64": {
+      "sha256": "TBD",
+      "size": 0
+    }
+  },
+  "recorded_at": "TBD",
+  "recorded_by": "TBD",
+  "notes": "Pascal compiler is p24p.s (COR24 assembly, runs on emulator). Not a host binary. Artifacts are .s and .spc files copied directly."
+}

@@ -1,0 +1,21 @@
+{
+  "name": "sw-em24",
+  "version": "v0.1.0",
+  "description": "COR24 emulator (cor24-run) with built-in assembler",
+  "repo": "https://github.com/sw-embed/sw-cor24-emulator.git",
+  "repo_path_local": "../sw-cor24-emulator",
+  "commit": "e7c790125e8a2025eb1d208d2de400b2cae76f1b",
+  "tag": "TBD",
+  "build_cmd": "cargo build --release",
+  "binary_src": "target/release/cor24-run",
+  "headers_src": null,
+  "docs_src": "docs",
+  "platforms": {
+    "darwin-arm64": {
+      "sha256": "TBD",
+      "size": 0
+    }
+  },
+  "recorded_at": "TBD",
+  "recorded_by": "TBD"
+}

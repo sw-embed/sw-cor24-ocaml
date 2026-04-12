@@ -1,0 +1,13 @@
+# Build artifacts
+build/
+
+# reg-rs runtime cache
+work/reg-rs/*.tdb
+work/reg-rs/*.lock
+
+# OS files
+.DS_Store
+
+# Editor files
+*.swp
+*~

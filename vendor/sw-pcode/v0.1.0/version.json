@@ -1,0 +1,27 @@
+{
+  "name": "sw-pcode",
+  "version": "v0.1.0",
+  "description": "P-code toolchain: VM (pvm.s), assembler (pa24r), and linker (pl24r)",
+  "repo": "https://github.com/sw-embed/sw-cor24-pcode.git",
+  "repo_path_local": "../sw-cor24-pcode",
+  "commit": "f924c9f1936ca4fc65883832a2dd8dde06520e75",
+  "tag": "TBD",
+  "build_cmd": "cargo build --release",
+  "binary_src": "TBD",
+  "artifacts": {
+    "pvm_s": "vm/pvm.s",
+    "pa24r": "target/release/pa24r",
+    "pl24r": "target/release/pl24r"
+  },
+  "headers_src": null,
+  "docs_src": "docs",
+  "platforms": {
+    "darwin-arm64": {
+      "sha256": "TBD",
+      "size": 0
+    }
+  },
+  "recorded_at": "TBD",
+  "recorded_by": "TBD",
+  "notes": "Three artifacts: pvm.s (COR24 assembly), pa24r and pl24r (host Rust binaries). pvm.s is copied as-is; pa24r/pl24r are built with cargo."
+}

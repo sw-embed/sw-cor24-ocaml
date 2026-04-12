@@ -1,0 +1,2 @@
+command = "./scripts/run-pascal.sh tests/hello_int.pas"
+exit_code = 0

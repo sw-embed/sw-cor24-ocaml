@@ -1,6 +1,6 @@
 number = 1
 slug = "scaffold"
-status = "pending"
+status = "in-progress"
 description = "Set up the project directory structure, vendoring skeleton, and build infrast..."
 role = "production"
 context_files = []
