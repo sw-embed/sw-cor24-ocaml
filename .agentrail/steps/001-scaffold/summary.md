@@ -1,0 +1,1 @@
+Set up project scaffolding: vendor/ with Pascal compiler, P-code toolchain, and emulator; build scripts; justfile; reg-rs tests. Smoke tests pass (hello world and hello int through full pipeline).
