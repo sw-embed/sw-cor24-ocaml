@@ -64,14 +64,12 @@ var
   src_len: integer;
   pos: integer;
   ch: char;
-
-{ ============================================================
-  Global name pool
-  ============================================================ }
-
-var
   name_pool: array[0..2047] of char;
   name_pool_len: integer;
+  parse_error: boolean;
+  save_noff: integer;
+  save_nlen: integer;
+  ast: PExpr;
 
 function pool_intern: integer;
 var start, j: integer;
@@ -261,11 +259,6 @@ begin new(n); n^.kind := EK_APP; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen
   Parser
   ============================================================ }
 
-var
-  parse_error: boolean;
-  save_noff: integer;
-  save_nlen: integer;
-
 procedure save_ident;
 begin save_noff := pool_intern; save_nlen := tok_id_len end;
 
@@ -341,18 +334,21 @@ begin e := parse_compare;
 
 function parse_expr: PExpr;
 var e, val_e, body_e: PExpr; is_rec: boolean;
+    my_noff, my_nlen: integer;
 begin
   parse_expr := nil;
   if tok = TK_LET then begin
     lex_next; is_rec := false;
     if tok = TK_REC then begin is_rec := true; lex_next end;
-    if (tok = TK_IDENT) or ((tok >= TK_LET) and (tok <= TK_MOD)) then begin save_ident; lex_next end
+    if (tok = TK_IDENT) or ((tok >= TK_LET) and (tok <= TK_MOD)) then begin
+      my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
     else begin parse_error := true; exit end;
     if tok = TK_EQ then lex_next else begin parse_error := true; exit end;
     val_e := parse_expr;
     if tok = TK_IN then lex_next else begin parse_error := true; exit end;
     body_e := parse_expr;
-    e := mk_let_node(val_e, body_e); restore_name_to(e);
+    e := mk_let_node(val_e, body_e);
+    e^.noff := my_noff; e^.nlen := my_nlen;
     if is_rec then e^.ival := 1;
     parse_expr := e; exit
   end;
@@ -366,10 +362,13 @@ begin
   end;
   if tok = TK_FUN then begin
     lex_next;
-    if tok = TK_IDENT then begin save_ident; lex_next end else begin parse_error := true; exit end;
+    if tok = TK_IDENT then begin
+      my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
+    else begin parse_error := true; exit end;
     if tok = TK_ARROW then lex_next else begin parse_error := true; exit end;
     body_e := parse_expr;
-    e := mk_fun_node(body_e); restore_name_to(e);
+    e := mk_fun_node(body_e);
+    e^.noff := my_noff; e^.nlen := my_nlen;
     parse_expr := e; exit
   end;
   parse_expr := parse_logic
@@ -424,8 +423,6 @@ end;
 { ============================================================
   Main
   ============================================================ }
-
-var ast: PExpr;
 
 begin
   name_pool_len := 0;

@@ -1,0 +1,1 @@
+(letrec f (fn x (if (L x 0) 1 (* x (@ f (- x 1))))) (@ print_int (@ f 5)))

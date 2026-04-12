@@ -1,0 +1,1 @@
+BLOCKED: Blocked on sw-embed/sw-cor24-pascal#8: MAX_SYMBOLS=64 too low. Combined lexer+parser program exceeds 64 symbols (constants + variables + functions). Also filed #9 for array-in-record support. Parser code is written and committed but cannot compile.

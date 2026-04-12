@@ -1,0 +1,2 @@
+command = "./scripts/run-parser-test.sh tests/lex_fun.ml"
+exit_code = 0

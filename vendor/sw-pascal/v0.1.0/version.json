@@ -23,5 +23,5 @@
   },
   "recorded_at": "TBD",
   "recorded_by": "TBD",
-  "notes": "Pascal compiler is p24p.s (COR24 assembly, runs on emulator). Not a host binary. Artifacts are .s and .spc files copied directly."
+  "notes": "Pascal compiler is p24p.s (COR24 assembly, runs on emulator). Not a host binary. Artifacts are .s and .spc files copied directly. Commit pin is pre-issues-8-12; artifacts include fixes from working tree (issues #8 MAX_SYMBOLS, #9 arrays-in-records, #10 pointer-return-types, #11 MAX_PROCS, #12 INPUT_BUF_SIZE). Update commit pin when upstream commits these fixes."
 }

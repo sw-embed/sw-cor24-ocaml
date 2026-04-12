@@ -1,6 +1,6 @@
 number = 7
 slug = "ast-parser-impl"
-status = "in-progress"
+status = "blocked"
 description = """
 Implement AST types and recursive descent parser in Pascal.
 
