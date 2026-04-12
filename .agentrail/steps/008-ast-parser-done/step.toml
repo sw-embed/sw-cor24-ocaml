@@ -1,0 +1,9 @@
+number = 8
+slug = "ast-parser-done"
+status = "completed"
+description = "Completed parser implementation after p24p fixes #8-#12 landed."
+role = "production"
+context_files = []
+created_at = "2026-04-12T16:25:03"
+completed_at = "2026-04-12T16:25:03"
+commits = ["30d2c1de975e6cd25d8899e20f818f10bc83e391"]

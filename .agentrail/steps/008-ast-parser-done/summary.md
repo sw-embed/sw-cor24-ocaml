@@ -1,0 +1,1 @@
+Implemented recursive descent parser with heap-allocated AST nodes. Correct operator precedence, let/let rec/if/fun parsing, function application. Fixed name scoping bug with local variables for interned names. Updated vendored compiler with fixes for issues #8-#12. 10 reg-rs tests passing (6 lexer + 4 parser).
