@@ -1,0 +1,11 @@
+number = 3
+slug = "ast-parser"
+status = "pending"
+description = """
+Implement AST types and recursive descent parser in Pascal.
+
+Create src/oc_as..."""
+role = "production"
+context_files = []
+created_at = "2026-04-12T13:09:30"
+commits = []

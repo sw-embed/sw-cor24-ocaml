@@ -1,0 +1,11 @@
+number = 5
+slug = "main-integration"
+status = "pending"
+description = """
+Wire everything together into a complete interpreter and build the demo.
+
+Cre..."""
+role = "production"
+context_files = []
+created_at = "2026-04-12T13:09:58"
+commits = []

@@ -1,0 +1,11 @@
+number = 4
+slug = "evaluator"
+status = "pending"
+description = """
+Implement the tree-walk evaluator and environment model in Pascal.
+
+Create sr..."""
+role = "production"
+context_files = []
+created_at = "2026-04-12T13:09:38"
+commits = []
