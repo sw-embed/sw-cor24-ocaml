@@ -1,0 +1,1 @@
+BLOCKED: Blocked on three p24p Pascal compiler issues: (1) read(char) calls _p24p_read_int instead of reading raw characters (sw-embed/sw-cor24-pascal#4), (2) MAX_STRINGS=16 too few string literals for test output (sw-embed/sw-cor24-pascal#5), (3) exit procedure not supported (sw-embed/sw-cor24-pascal#6). Lexer code is written and committed, but cannot be tested until fixes land.

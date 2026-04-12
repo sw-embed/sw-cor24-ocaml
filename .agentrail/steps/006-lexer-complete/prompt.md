@@ -1,0 +1,1 @@
+Resumed blocked step 002-lexer after p24p compiler fixes landed (issues #4, #5, #6). Implemented OCaml tokenizer, updated vendor pin, created regression tests.

@@ -1,0 +1,11 @@
+number = 7
+slug = "ast-parser-impl"
+status = "in-progress"
+description = """
+Implement AST types and recursive descent parser in Pascal.
+
+Create AST node ..."""
+role = "production"
+context_files = []
+created_at = "2026-04-12T15:42:37"
+commits = []

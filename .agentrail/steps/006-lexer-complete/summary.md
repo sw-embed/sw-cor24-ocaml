@@ -1,0 +1,1 @@
+Implemented OCaml tokenizer in Pascal with full Phase 0 coverage. Lexer handles integers, identifiers, 11 keywords, all operators, delimiters, whitespace, and nested comments. Updated vendored Pascal compiler to 73e34aa with fixes for read(char), MAX_STRINGS, and exit. 4 reg-rs lexer tests passing, 6 total.
