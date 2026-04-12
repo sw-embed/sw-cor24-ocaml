@@ -1,0 +1,2678 @@
+
+
+
+
+Is ocaml open source (or are there open source implementations of it)?  How hard would it be to create from scratch?  Would it be best to implement it in C or assembler or other language?  Does it bootstrap itself like lisp or forth?
+
+I’m checking the current OCaml licensing, implementation status, and bootstrap details so I can answer the “open source / from scratch / implementation language / self-hosting” parts accurately.
+
+I’ve confirmed the current upstream state: OCaml itself is open source, the core system still mixes OCaml and C, and it remains a bootstrapped compiler rather than a tiny “write it all in assembly” system. I’m pulling one more level of detail on the bootstrap path so I can answer the self-hosting part cleanly.
+
+Thought for 22s
+Yes.
+
+Restating the question
+You are asking four separate things:
+
+Is OCaml open source?
+
+Are there open-source implementations of OCaml?
+
+How hard would it be to create one from scratch?
+
+What language is best for an implementation, and is it self-hosting/bootstraped like Lisp or Forth?
+
+The current state
+The answer to the first two is yes. The main upstream OCaml implementation is open source, published by the OCaml project, with source code in the public ocaml/ocaml repository. The official site also lists current public releases; as of now it shows OCaml 5.4.1 as the latest release and 4.14.3 as the LTS release. 
+
+The upstream implementation is not a toy interpreter. It includes:
+
+a bytecode compiler
+
+a bytecode runtime/interpreter written in C
+
+a native-code compiler
+
+the runtime system and standard libraries 
+
+So the main implementation is already open source, and there are also public forks and variants built from it. The important point is that you do not need to hunt for some separate “open” implementation: the primary one is already open. 
+
+Is it self-hosting?
+Mostly yes, but not in the pure Lisp/Forth sense.
+
+The OCaml compiler is bootstrapped. The project’s own hacking docs say the compiler is bootstrapped and that previously compiled bytecode versions of the compiler and lexer are kept in the repository under boot/. Those are used after the C bytecode runtime is built, and then a fresh compiler is built from there. 
+
+That means:
+
+the compiler is substantially written in OCaml
+
+but it still depends on a runtime written in C
+
+and the initial build uses prebuilt bootstrap artifacts rather than “compile from handwritten source using only assembly” 
+
+So compared with your examples:
+
+More self-hosting than many C-family compilers in practice
+
+Less minimal/purely circular than classic small Lisp or Forth systems that can often be grown from a tiny seed interactively
+
+How hard would it be to create from scratch?
+High-level answer
+Creating a real OCaml implementation from scratch is hard, but not equally hard at all levels.
+
+There are three realistic scopes:
+
+1. Tiny educational subset
+This is very doable.
+
+For example:
+
+integers, booleans, tuples
+
+let, fun, application
+
+algebraic data types
+
+pattern matching
+
+Hindley–Milner type inference
+
+bytecode or tree-walk interpreter
+
+That is a solid language project.
+
+2. “Looks like OCaml” but incomplete
+This is a medium-to-large project.
+
+You might add:
+
+modules
+
+records and variants
+
+exceptions
+
+recursive definitions
+
+some standard library
+
+separate compilation
+
+Still feasible for one person over time.
+
+3. Real OCaml compatibility
+This is a major compiler/runtime project.
+
+What makes it hard is not just parsing. The hard parts are:
+
+full type inference and typing rules
+
+module system
+
+pattern-match compilation
+
+closures and calling conventions
+
+garbage collector
+
+exceptions/runtime representation
+
+separate compilation and interfaces
+
+native code generation or a serious VM
+
+compatibility with existing OCaml semantics and ecosystem
+
+That is much closer to “build a production compiler” than “write a language toy.”
+
+Architecture considerations
+If your goal is educational, there are two sensible designs.
+
+Option A: Interpreter first
+Best if you want to understand semantics.
+
+lexer
+
+parser
+
+AST
+
+type inference
+
+evaluator
+
+small runtime
+
+Pros
+
+fastest path to something working
+
+easiest to debug
+
+ideal for learning
+
+Cons
+
+not very OCaml-like in performance
+
+less interesting if your goal is code generation
+
+Option B: Typed AST to bytecode / custom VM
+Best if you want a real implementation path.
+
+lexer
+
+parser
+
+typed IR
+
+closure conversion or direct lambda IR
+
+bytecode compiler
+
+C or Rust VM
+
+optional native compiler later
+
+Pros
+
+scales better
+
+closer to real compiler engineering
+
+easier later to target native code
+
+Cons
+
+more moving parts early
+
+What language should you implement it in?
+Best practical answer: C, Rust, or OCaml
+C
+This is the most traditional choice, and it matches part of the upstream runtime model.
+
+Why choose C
+
+simple portability story
+
+easy to interface with low-level runtime and GC work
+
+classic compiler literature maps well to it
+
+easy to bootstrap from almost anywhere
+
+Downside
+
+you spend more effort on memory safety and tooling discipline
+
+Rust
+This is probably the best modern choice for a fresh implementation if you are comfortable in it.
+
+Why choose Rust
+
+safer runtime/compiler implementation
+
+strong enums and pattern matching fit AST work very well
+
+good for building parser, type checker, VM, and tooling
+
+Downside
+
+GC/runtime implementation can feel more awkward than in C
+
+bootstrapping to tiny targets may be more involved than plain C
+
+OCaml
+A very sensible choice if your aim is “an OCaml implemented in OCaml,” once you already have a seed compiler.
+
+Why choose OCaml
+
+natural fit for compilers and typed AST transforms
+
+close to the source language
+
+nice for self-hosting evolution
+
+Downside
+
+chicken-and-egg problem unless you already trust an existing OCaml compiler
+
+less ideal if your goal is extreme portability from zero
+
+What I would recommend
+For a fresh clean-room implementation:
+
+Rust if your priority is maintainability and safety
+
+C if your priority is low-level control and easiest bootstrap path
+
+OCaml only after you have a working seed or if self-hosting is itself the point
+
+What I would not recommend first
+assembler for the full implementation
+
+unless your goal is specifically to build a tiny bootstrap seed
+
+Assembler makes sense for:
+
+a tiny runtime stub
+
+a tiny VM
+
+maybe a microscopic bootstrap compiler
+
+It does not make sense as the main implementation language for a modern ML-family compiler unless you are doing it as an experiment.
+
+Does it bootstrap like Lisp or Forth?
+Similarity
+Yes, in the sense that later generations of the compiler are built by earlier generations of the compiler. That is the classic bootstrap/self-hosting idea. OCaml explicitly documents that its compiler is bootstrapped. 
+
+Difference
+No, in the sense that it is not usually grown from a tiny interactive nucleus the way many Lisp or Forth systems historically were.
+
+OCaml’s bootstrap path depends on:
+
+prebuilt bootstrap compiler artifacts in boot/
+
+a C runtime
+
+a more conventional build chain 
+
+So the best description is:
+
+OCaml is self-hosting/bootstrapped, but not “minimal-seed interactive bootstrap” in the classic Lisp/Forth style.
+
+Practical recommendation
+If you want to create one from scratch, I would not start with “full OCaml.”
+
+I would build this sequence:
+
+mini-ML
+
+integers, booleans, functions, let, tuples
+
+add HM type inference
+
+add variants + pattern matching
+
+add closures and a small runtime
+
+add modules later, or skip them entirely for a long time
+
+decide whether you want:
+
+interpreter
+
+bytecode VM
+
+native backend
+
+That gives you something educational and tractable.
+
+Bottom line
+Yes, OCaml is open source. The main compiler/runtime implementation is public and actively maintained. 
+
+Yes, there are open-source implementations/variants, but the main upstream implementation is already open, so that is the one to study first. 
+
+Building a full OCaml-compatible compiler from scratch is hard.
+
+Building a small OCaml-like language is very feasible.
+
+For a fresh implementation, use Rust or C.
+
+OCaml is bootstrapped/self-hosting, but it still relies on a C runtime and bootstrap artifacts, so it is not quite the same style as a tiny classic Lisp or Forth bootstrap. 
+
+If you want, I can sketch a minimal OCaml-like compiler architecture in Rust or C, with phases, IR choices, and a staged bootstrap plan.
+
+
+license(s)?
+
+Short answer
+The main OCaml implementation is open source under the LGPL v2.1 (with a special linking exception).
+
+Parts of the toolchain and ecosystem use more permissive licenses (BSD / MIT / ISC).
+
+The compiler runtime and standard library are explicitly designed to be usable in proprietary programs without forcing your code to be open source.
+
+1. Core OCaml license (what matters most)
+LGPL v2.1 + OCaml linking exception
+The OCaml compiler, runtime, and standard library are licensed under:
+
+GNU LGPL v2.1
+
+PLUS a special exception
+
+What the exception does
+Normally LGPL has requirements around linking (especially static linking).
+OCaml adds an explicit exception that says (in plain terms):
+
+You can link OCaml runtime / stdlib into your program without having to open-source your program, even if statically linked.
+
+Practical implications
+Scenario	Allowed?	Notes
+Closed-source app using OCaml	✅	Fully allowed
+Static linking OCaml runtime	✅	Exception explicitly allows this
+Modifying OCaml compiler/runtime	⚠️	You must publish those changes
+Using OCaml libraries	✅	Usually permissive
+This makes OCaml much closer in practice to MIT/BSD-style usability than raw LGPL.
+
+2. Other parts of the ecosystem
+Different components use different licenses:
+
+Compiler tools & runtime
+Mostly LGPL v2.1 + exception
+
+Standard library
+Same as above (LGPL + exception)
+
+Auxiliary tools (varies)
+Some are:
+
+BSD
+
+MIT
+
+ISC
+
+Package ecosystem (OPAM)
+Mixed licenses (depends on package author)
+
+Many libraries are MIT/BSD
+
+3. Comparison to other languages
+Language	License model	Practical restriction level
+C/C++ (gcc/clang)	GPL/LGPL mix	Medium
+Rust	MIT/Apache-2.0	Very permissive
+OCaml	LGPL + exception	Effectively permissive
+Java (OpenJDK)	GPL + classpath exception	Similar idea
+Lisp (varies)	Often MIT/BSD	Very permissive
+OCaml’s model is closest to:
+
+“copyleft for the compiler itself, permissive for users of the language.”
+
+4. If you build your own OCaml implementation
+You have choices:
+
+Clean-room implementation
+You can use:
+
+MIT
+
+BSD
+
+Apache-2.0
+
+GPL/LGPL if you want copyleft
+
+No restriction from OCaml itself if you don’t copy code.
+
+Reusing OCaml code
+You must comply with:
+
+LGPL v2.1
+
+linking exception terms
+
+Modifications must be shared
+
+5. Key architectural takeaway
+From a systems-design perspective:
+
+OCaml deliberately separates:
+
+language usability (permissive)
+
+compiler/runtime modifications (copyleft)
+
+This is similar to:
+
+Java’s Classpath exception
+
+GCC runtime exception
+
+It enables:
+
+commercial adoption
+
+static binaries
+
+embedded use
+
+without license friction
+
+Bottom line
+OCaml is open source and business-friendly
+
+License = LGPL v2.1 + special exception
+
+You can:
+
+build proprietary software with it
+
+statically link it
+
+You only need to open-source:
+
+changes to the compiler/runtime itself
+
+If you want, I can break down the exact text of the linking exception or compare it line-by-line with GPL/LGPL/Apache to see how “safe” it is for your specific use cases (e.g., embedding in your MLPL or COR24 toolchain).
+
+
+Given my Rust-C-to-cor24.s and P-code VM Pascal compiler in C/.s, and a PL/SW compiler in C/.s, and from there a BASIC interpreter written in Pascal.  And also a SNOBOL4 interpreter written in PL/SW.  And also a Fortran compiler written in SNOBOL4.  So, If I wanted to run an integer subset of OCaml on COR24, and I prefer not to use Rust or C, would it make more sense to use PL/SW or the P-code VM Pascal to implement the OCaml interpreter (does it have a compiler)? 
+
+Thought for 6s
+Restating the problem
+You already have a layered language stack on COR24:
+
+Rust cross-tools generating or helping with cor24.s
+
+C on COR24
+
+P-code VM + Pascal compiler
+
+PL/SW compiler
+
+BASIC interpreter in Pascal
+
+SNOBOL4 interpreter in PL/SW
+
+Fortran compiler in SNOBOL4
+
+Now you want an integer subset of OCaml on COR24, and you would prefer not to use Rust or C for the implementation.
+
+The design choice is:
+
+implement it in PL/SW
+
+or implement it in Pascal targeting your P-code VM
+
+And you are also asking a deeper question:
+
+should this be an interpreter
+
+or should it have a compiler
+
+My recommendation
+For your environment, I would choose:
+
+Pascal on the P-code VM for the first OCaml subset implementation
+and I would make it:
+
+an interpreter first, not a compiler
+Then, only later, if the subset proves useful:
+
+add a bytecode compiler
+
+or translate the OCaml subset into P-code-oriented intermediate form
+
+or eventually compile into PL/SW or cor24.s
+
+Why Pascal/P-code is the better first choice
+High-level architecture fit
+An integer-only OCaml subset needs a lot of structured tree manipulation:
+
+tokens
+
+parser states
+
+AST nodes
+
+environments
+
+closures or closure-like values
+
+pattern matching
+
+recursive evaluation
+
+symbol tables
+
+maybe type expressions later
+
+That workload wants:
+
+clean records/variants
+
+predictable control flow
+
+stack-friendly recursion
+
+easier debugging
+
+better modular decomposition
+
+Your Pascal-on-P-code path is likely better at that than PL/SW.
+
+Why not PL/SW first?
+PL/SW sounds better suited as:
+
+systems glue
+
+runtime support
+
+interpreter substrate
+
+macro-heavy infrastructure
+
+lower-level implementation work
+
+But an OCaml subset interpreter is not primarily a “systems language” problem. It is mostly a:
+
+syntax problem
+
+AST problem
+
+environment/value representation problem
+
+evaluator problem
+
+That is a better fit for Pascal than for a portable-high-level-assembler style language.
+
+Decision matrix
+Option 1: Implement in Pascal on P-code VM
+Benefits
+Better for recursive descent parser or Pratt parser
+
+Better for tree-walking interpreter
+
+Better for typed records representing AST/value nodes
+
+Easier to structure as:
+
+lexer
+
+parser
+
+AST
+
+evaluator
+
+environment
+
+More maintainable if the project grows
+
+Easier to evolve later into:
+
+parser + compiler
+
+parser + type checker
+
+parser + bytecode generator
+
+Risks
+Performance may be slower than a direct PL/SW implementation
+
+VM overhead adds another layer
+
+If your Pascal is missing flexible dynamic allocation or good string support, that will hurt
+
+Closure representation may require care
+
+Option 2: Implement in PL/SW
+Benefits
+Closer to the machine
+
+Possibly better control over memory layout
+
+Easier to integrate with custom runtime tricks
+
+Potentially better if you want a very compact direct implementation
+
+Risks
+More painful parser/evaluator implementation
+
+More friction for AST-heavy code
+
+Harder to evolve and debug
+
+You may end up re-creating a lot of “compiler implementation convenience” manually
+
+The code may become dense and brittle
+
+My stronger advice
+Use Pascal unless one of these is true:
+your Pascal implementation is too incomplete for recursive data structures
+
+heap allocation is too weak
+
+procedure calls are too expensive
+
+string handling is unusable
+
+the P-code VM makes debugging worse rather than better
+
+If those are serious problems, then PL/SW becomes more attractive.
+
+Interpreter or compiler?
+First step: interpreter
+For your first OCaml subset, an interpreter is the right answer.
+
+You asked “does it have a compiler?” The answer should be:
+
+not first
+
+maybe later
+
+Why interpreter first
+Because your first real questions are semantic, not codegen-related:
+
+What subset of OCaml syntax do you want?
+
+Are functions first-class?
+
+Are closures supported?
+
+Is let rec supported?
+
+Are lists built in?
+
+Are algebraic data types included?
+
+Is pattern matching included?
+
+Is type inference included, optional, or omitted?
+
+A compiler adds another whole class of problems before the language semantics are stable.
+
+What subset I would implement first
+For COR24, I would not begin with “OCaml” broadly. I would define a very narrow language.
+
+Phase 0: expression evaluator
+Support only:
+
+integer literals
+
+variables
+
+let
+
+if
+
+arithmetic
+
+comparisons
+
+function definition
+
+function application
+
+Example:
+
+let inc = fun x -> x + 1 in
+inc 41
+No type inference required at first if you do dynamic checking or implicit integer-only assumptions.
+
+Phase 1: recursion
+Add:
+
+let rec
+
+simple recursive functions
+
+Example:
+
+let rec fact n =
+  if n = 0 then 1 else n * fact (n - 1)
+in fact 5
+Phase 2: lists / tuples
+Add one of:
+
+pairs
+
+lists
+
+tuples
+
+But not all at once.
+
+Phase 3: pattern matching
+Only after values are stable.
+
+Phase 4: optional static typing
+Only after the evaluator works.
+
+Would it “have a compiler”?
+Best phased approach
+Stage 1
+Parser + interpreter
+
+Stage 2
+Parser + AST optimizer + interpreter
+
+Stage 3
+Parser + compiler to your own bytecode or P-code-friendly IR
+
+Stage 4
+Maybe:
+
+compile to P-code directly
+
+or compile to a lower IR then emit P-code
+
+or compile to PL/SW-like intermediate constructs
+
+Important architectural choice: direct evaluator vs bytecode VM
+Even if you choose Pascal, there are two good internal designs.
+
+Design A: tree-walk interpreter
+Parse into AST, then recursively evaluate.
+
+Pros
+simplest
+
+best for proving semantics
+
+best for early debugging
+
+Cons
+slower
+
+more heap traffic
+
+closures/environment lookup may get expensive
+
+Design B: compile AST to small bytecode, then run a VM
+This is still an “interpreter project,” but with an internal VM.
+
+Pros
+cleaner runtime model
+
+easier later to optimize
+
+easier to debug execution trace
+
+closer to real OCaml implementation thinking
+
+Cons
+more work up front
+
+Recommendation
+Start with tree-walk, then migrate to bytecode only if needed.
+
+Pascal vs PL/SW by subsystem
+A split approach may be even better.
+
+In Pascal
+lexer
+
+parser
+
+AST builder
+
+evaluator
+
+maybe simple type checker
+
+In PL/SW
+heap manager helpers
+
+symbol table primitives
+
+runtime services
+
+debugging/tracing support
+
+optional bytecode VM later
+
+That gives you the best of both.
+
+Does OCaml itself suggest interpreter or compiler?
+Conceptually, OCaml is naturally a compiled language, but that does not mean your subset should start that way.
+
+For your purposes, the real goal is likely one of these:
+
+explore ML-family semantics on COR24
+
+gain a usable higher-level functional language
+
+extend the language tower historically/educationally
+
+Those goals point strongly to:
+
+interpreter first
+rather than
+
+full compiler first
+Bootstrapping implications in your stack
+Your stack already has a beautiful “tower” property:
+
+Pascal implemented on P-code VM
+
+BASIC in Pascal
+
+SNOBOL4 in PL/SW
+
+Fortran compiler in SNOBOL4
+
+Adding OCaml as:
+
+interpreter in Pascal
+fits this tower cleanly.
+
+Adding it in PL/SW is still reasonable, but it feels more like a runtime/systems move than a language-design move.
+
+Also, if later you want:
+
+an OCaml subset compiler written in the subset itself
+
+then starting from Pascal gives you a cleaner path:
+
+implement interpreter
+
+implement parser and AST tools
+
+add compiler to bytecode/P-code
+
+later self-host pieces if desired
+
+That is much more realistic than jumping immediately to self-hosting.
+
+Nonfunctional considerations
+Maintainability
+Pascal wins.
+
+Performance
+PL/SW may win, but only after considerable effort.
+
+Ease of bringing up a prototype
+Pascal wins.
+
+Memory control
+PL/SW wins.
+
+Semantic experimentation
+Pascal wins.
+
+Long-term runtime tuning
+PL/SW wins.
+
+My practical recommendation
+Best path
+Choice
+Use Pascal on the P-code VM
+
+Product
+Build an interpreter first
+
+Subset
+Integer-only, expression-oriented mini-OCaml
+
+Features for v1
+ints
+
+vars
+
+let
+
+if
+
+arithmetic
+
+equality / ordering
+
+one-argument functions
+
+function application
+
+let rec
+
+Explicitly omit at first
+module system
+
+full type inference
+
+polymorphism
+
+exceptions
+
+records
+
+user-defined algebraic data types
+
+complex pattern matching
+
+separate compilation
+
+When PL/SW would become the better choice
+I would switch to PL/SW if one of these becomes your real goal:
+
+very tight memory footprint
+
+direct control over heap/object representation
+
+custom compact closures
+
+bytecode interpreter tightly tuned to COR24
+
+eventual compilation to machine-oriented representation
+
+using macros to generate large portions of runtime machinery
+
+In that case, the likely best plan is:
+
+prototype in Pascal
+
+reimplement the runtime/VM in PL/SW later
+
+Bottom line
+Direct answer
+Given your existing stack and your desire to avoid Rust and C:
+
+It makes more sense to implement the first integer subset of OCaml in Pascal on the P-code VM, not PL/SW.
+And:
+
+It should be an interpreter first, not a compiler.
+Then, once the subset is stable, you can decide whether to:
+
+compile to a compact bytecode,
+
+compile to P-code,
+
+or move performance-critical runtime pieces into PL/SW.
+
+One-sentence summary
+Pascal is the better language for the front end and semantics; PL/SW is the better language for runtime tuning and VM work later.
+
+I can draft a concrete module breakdown for this mini-OCaml-in-Pascal system next, such as lexer/parser/AST/value/env/eval and the exact subset grammar.
+
+
+I can go the Pascal route and I do have a p-code AOT compiler to cor24 s in progress.  How would I use this byte-code compiler to produce a OCaml application binary?  Is the compiled app using an interpreter internally?  The p-code VM would run as an AOT-compiled binary app.  Explain the flow of the compiling to binary steps and the runtime path (vm gets called, calls OCaml interpreter, runs OCaml app) two modes: interpreted or compiled.  Differences?
+
+Thought for a couple of seconds
+Restating the requirement
+You have:
+
+a Pascal compiler that targets p-code
+
+a p-code VM
+
+an AOT path in progress that turns the p-code VM into COR24 .s, yielding a native COR24 binary
+
+a planned integer-subset OCaml implementation in Pascal
+
+You want to understand how this can produce an OCaml application binary, and specifically the full flow in two modes:
+
+Interpreted OCaml mode
+
+native COR24 binary contains p-code VM
+
+VM runs Pascal-built OCaml interpreter
+
+interpreter runs OCaml source or tokenized/AST form
+
+Compiled OCaml mode
+
+OCaml source is compiled to some bytecode or VM code
+
+native COR24 binary contains p-code VM plus OCaml runtime/engine
+
+runtime executes compiled OCaml program
+
+And you want the differences in build pipeline and runtime behavior.
+
+High-level answer
+Yes, in both cases the final delivered COR24 program can be a binary application.
+
+But the phrase “compiled OCaml application binary” can mean two different things:
+
+Meaning A: packaged binary
+A COR24 binary that contains:
+
+p-code VM
+
+OCaml runtime/interpreter/compiler support
+
+OCaml program data
+
+This is still a real binary application, even if inside it there is an interpreter or bytecode executor.
+
+Meaning B: direct native OCaml compilation
+A COR24 binary where the OCaml program itself has been translated into direct COR24-oriented code, with no interpreter-like execution layer for the OCaml logic.
+
+That second form is harder and probably not your first target.
+
+For your stack, the best first path is:
+
+First target
+Build a native COR24 executable that embeds:
+
+AOT-compiled p-code VM
+
+AOT-compiled Pascal OCaml engine
+
+either
+
+OCaml source / AST / token stream for interpreted mode
+
+or OCaml bytecode for compiled mode
+
+So the final artifact is native, but the OCaml layer may still be interpreted or VM-executed internally.
+
+Architectural model
+Think of your system as having three layers:
+
+Layer 1: COR24 native layer
+This is the actual machine-level executable.
+
+Examples:
+
+your AOT-compiled p-code VM
+
+support runtime
+
+loader / startup code
+
+Layer 2: Pascal/p-code layer
+This contains code originally written in Pascal and compiled to p-code, then effectively hosted by the VM.
+
+Examples:
+
+OCaml lexer
+
+parser
+
+interpreter
+
+compiler
+
+bytecode executor
+
+runtime services
+
+Layer 3: OCaml program layer
+This is the user program.
+
+Examples:
+
+source text
+
+AST serialization
+
+OCaml bytecode
+
+future native-ish lower IR
+
+Two main modes
+Mode 1: Interpreted OCaml
+This is the simplest and best first design.
+
+What it means
+Your OCaml implementation written in Pascal is basically:
+
+lexer
+
+parser
+
+AST builder
+
+evaluator/interpreter
+
+runtime environment
+
+The user’s OCaml program is stored as:
+
+source text, or
+
+tokenized form, or
+
+serialized AST
+
+The Pascal OCaml engine reads that and interprets it.
+
+Build flow for interpreted mode
+Step 1: Write the OCaml interpreter in Pascal
+Modules might be:
+
+oc_lex.pas
+
+oc_parse.pas
+
+oc_ast.pas
+
+oc_eval.pas
+
+oc_env.pas
+
+oc_main.pas
+
+Step 2: Compile Pascal sources to p-code
+Your Pascal compiler emits p-code for the OCaml interpreter.
+
+Output:
+
+ocaml_interp.pcode
+
+Step 3: Provide the user OCaml program
+For example:
+
+hello.ml
+
+fact.ml
+
+You now decide packaging strategy:
+
+Option 3A: external source file
+The COR24 app loads the OCaml source from file/input/buffer.
+
+Option 3B: embedded source
+The source text is packaged into the binary as data.
+
+Option 3C: pre-parsed AST
+A host tool parses once and embeds serialized AST instead of source text.
+
+Step 4: Build the p-code VM as COR24 native
+Your AOT path produces:
+
+pcvm.s
+
+assembled into COR24 binary image
+
+Step 5: Package the interpreter p-code and OCaml program into the binary
+The final native app includes:
+
+COR24 startup code
+
+native p-code VM
+
+p-code image for OCaml interpreter
+
+source text or AST of the OCaml app
+
+Step 6: Produce final COR24 application image
+This becomes something like:
+
+ocaml_app.bin
+
+Runtime path for interpreted mode
+At runtime the flow is:
+
+Native startup
+COR24 starts native binary
+
+startup initializes memory
+
+startup enters native p-code VM
+
+Pascal engine startup
+p-code VM begins executing oc_main
+
+oc_main loads embedded or external OCaml program text
+
+OCaml interpretation
+lexer tokenizes the OCaml source
+
+parser builds AST
+
+evaluator walks AST
+
+evaluator produces values / output
+
+In stack form
+COR24 hardware
+  -> native startup
+    -> native p-code VM
+      -> Pascal OCaml interpreter
+        -> OCaml source program
+Is there an interpreter internally?
+Yes.
+
+In interpreted mode, the OCaml application is not directly native. It is run by the Pascal OCaml interpreter.
+
+Mode 2: Compiled OCaml
+Now we need to define “compiled.”
+
+For your architecture, there are two realistic compiled variants.
+
+Mode 2A: OCaml compiled to OCaml bytecode
+This is the most practical “compiled” mode.
+
+The OCaml source is compiled by your Pascal OCaml compiler into a custom bytecode or instruction list.
+
+Then, at runtime, a bytecode executor runs that compiled OCaml program.
+
+Important point
+This is still not “direct native” execution of OCaml semantics.
+
+Instead:
+
+the VM itself is native COR24
+
+the OCaml bytecode executor is Pascal running on the p-code VM
+
+the OCaml program is compiled, but compiled to OCaml bytecode, not to COR24 native code
+
+This is still a good and valid compiled mode.
+
+Build flow for compiled mode (bytecode target)
+Step 1: Build an OCaml compiler in Pascal
+Now your Pascal OCaml implementation grows new modules:
+
+oc_compile.pas
+
+oc_bc_emit.pas
+
+oc_bc_runtime.pas
+
+Step 2: Run the OCaml compiler on the source program
+Input:
+
+hello.ml
+
+Output:
+
+hello.ocb (OCaml bytecode)
+
+This compile step can happen:
+
+Option A: ahead of time on host
+Use your Pascal compiler / tools on host or within emulator environment.
+
+Option B: on target
+The COR24 app contains the compiler and compiles source at runtime.
+
+For deployable binaries, ahead of time is better.
+
+Step 3: Compile the OCaml runtime / bytecode executor in Pascal to p-code
+This produces p-code for:
+
+bytecode loader
+
+bytecode dispatcher
+
+environment/closure manager
+
+integer arithmetic runtime
+
+primitive operations
+
+Step 4: Build native COR24 p-code VM
+Same as before.
+
+Step 5: Package into a final native binary
+The final COR24 executable contains:
+
+native startup
+
+native p-code VM
+
+Pascal p-code for OCaml bytecode runtime
+
+compiled OCaml bytecode image
+
+Step 6: Run
+The native app boots the VM, which boots the Pascal OCaml bytecode runtime, which runs the bytecode app.
+
+Runtime path for compiled mode (bytecode target)
+COR24 hardware
+  -> native startup
+    -> native p-code VM
+      -> Pascal OCaml bytecode runtime
+        -> OCaml bytecode program
+Is there an interpreter internally?
+Yes, but at a different level.
+
+Not a source interpreter anymore. Instead, there is a bytecode interpreter or bytecode VM.
+
+That is an important distinction.
+
+Third possibility: truly compiled to p-code
+There is also a stronger compiled mode.
+
+Mode 2B: OCaml compiled to p-code directly
+Instead of compiling OCaml to its own bytecode, you compile the OCaml subset directly into your Pascal VM’s p-code format.
+
+Then the final packaged OCaml application consists of p-code generated from OCaml, possibly linked with runtime support.
+
+This is attractive because
+you remove one execution layer
+
+you do not need a separate OCaml bytecode VM
+
+the existing p-code VM becomes the only VM
+
+Runtime path
+COR24 hardware
+  -> native startup
+    -> native p-code VM
+      -> OCaml-generated p-code
+Where is the OCaml interpreter?
+There is none at runtime.
+
+Is there still a VM?
+Yes, the p-code VM.
+
+This is probably the cleanest compiled mode in your architecture.
+
+Comparing the three runtime shapes
+1. Source interpreted
+COR24 native
+  -> p-code VM
+    -> Pascal OCaml source interpreter
+      -> OCaml source/AST
+Pros
+easiest to build first
+
+easiest to debug language semantics
+
+simple development loop
+
+Cons
+slowest
+
+most layers at runtime
+
+parser cost on every run unless cached
+
+2. OCaml bytecode interpreted
+COR24 native
+  -> p-code VM
+    -> Pascal OCaml bytecode engine
+      -> OCaml bytecode
+Pros
+faster startup
+
+more structured runtime
+
+separates compile-time from execution-time
+
+good stepping stone toward real compiler architecture
+
+Cons
+still has an interpreter loop
+
+now you maintain both compiler and runtime
+
+two virtual layers conceptually: p-code VM and OCaml bytecode engine
+
+3. OCaml compiled directly to p-code
+COR24 native
+  -> p-code VM
+    -> p-code generated from OCaml
+Pros
+simplest runtime stack once working
+
+no OCaml interpreter at runtime
+
+no extra OCaml bytecode engine
+
+probably best long-term fit for your stack
+
+Cons
+compiler is harder
+
+must define code generation and calling conventions earlier
+
+closures/functions/recursion need careful lowering
+
+Recommended path
+For your situation, I would recommend this staged plan.
+
+Phase 1: source interpreter
+Implement the subset and prove semantics.
+
+Output:
+
+working OCaml subset interpreter in Pascal
+
+runs on p-code VM AOT-compiled to COR24 native
+
+Phase 2: direct compile to p-code
+Skip a custom OCaml bytecode unless you need it for debugging.
+
+Why skip it?
+
+Because you already have a VM:
+
+the p-code VM
+
+So introducing another bytecode may be unnecessary unless:
+
+you want a very clean compiler architecture
+
+you want portable debugging traces
+
+you want to keep the OCaml backend independent of p-code
+
+Otherwise, compiling OCaml directly to p-code is likely better.
+
+Detailed build pipelines
+Pipeline A: interpreted OCaml
+Build-time flow
+Pascal sources for OCaml interpreter
+  -> Pascal compiler
+    -> p-code image for interpreter
+
+OCaml source program
+  -> embedded as text/data
+
+p-code VM source
+  -> AOT compiler
+    -> cor24.s
+      -> assembler
+        -> COR24 binary
+
+Package:
+  native VM binary
+  + interpreter p-code
+  + OCaml source text
+  -> final COR24 executable image
+Runtime flow
+boot
+  -> native startup
+  -> native p-code VM starts
+  -> loads interpreter p-code
+  -> interpreter reads embedded/source program
+  -> lex/parse/eval
+  -> output/result
+Pipeline B: compiled OCaml to custom bytecode
+Build-time flow
+OCaml source
+  -> Pascal OCaml compiler
+    -> OCaml bytecode image
+
+Pascal bytecode runtime
+  -> Pascal compiler
+    -> p-code image
+
+p-code VM
+  -> AOT compiler
+    -> cor24.s
+      -> assembler
+        -> COR24 binary
+
+Package:
+  native VM binary
+  + bytecode-runtime p-code
+  + OCaml bytecode image
+  -> final COR24 executable image
+Runtime flow
+boot
+  -> native startup
+  -> native p-code VM starts
+  -> loads bytecode-runtime p-code
+  -> runtime loads OCaml bytecode
+  -> bytecode dispatcher executes program
+  -> output/result
+Pipeline C: compiled OCaml directly to p-code
+Build-time flow
+OCaml source
+  -> Pascal OCaml compiler
+    -> p-code for OCaml app
+
+Optional runtime support in Pascal
+  -> Pascal compiler
+    -> p-code libraries
+
+p-code VM
+  -> AOT compiler
+    -> cor24.s
+      -> assembler
+        -> COR24 binary
+
+Package:
+  native VM binary
+  + runtime p-code
+  + OCaml-generated p-code app
+  -> final COR24 executable image
+Runtime flow
+boot
+  -> native startup
+  -> native p-code VM starts
+  -> enters OCaml-generated p-code main
+  -> runtime helpers called as needed
+  -> output/result
+What counts as “binary” in each case?
+All three can produce a single COR24 application binary.
+
+The question is only what kind of engine is inside.
+
+Interpreted mode
+Binary contains an interpreter.
+
+Compiled-to-bytecode mode
+Binary contains a bytecode executor.
+
+Compiled-to-p-code mode
+Binary contains only the p-code VM plus runtime support. This is the least interpreter-like of the three.
+
+Differences between interpreted and compiled modes
+Build-time differences
+Interpreted mode
+simpler compiler toolchain
+
+no code generation required
+
+package source or AST
+
+Compiled mode
+requires code generator
+
+package bytecode or p-code
+
+usually faster execution and startup
+
+Runtime differences
+Interpreted mode
+At runtime:
+
+parse
+
+build AST
+
+recursively evaluate source structure
+
+Compiled mode
+At runtime:
+
+load already-compiled representation
+
+execute lower-level instructions
+
+less front-end overhead
+
+Memory differences
+Interpreted mode
+Needs memory for:
+
+source text
+
+tokens
+
+AST
+
+environments
+
+values
+
+Compiled mode
+Needs memory for:
+
+bytecode/p-code image
+
+runtime stack
+
+environments/heap
+
+fewer front-end structures
+
+Compiled mode can be significantly smaller at runtime if you avoid storing full ASTs.
+
+Performance differences
+Interpreted mode
+Slower because:
+
+parsing on startup
+
+tree walking
+
+more pointer chasing
+
+more dynamic dispatch in evaluator
+
+Compiled mode
+Faster because:
+
+startup simpler
+
+instructions are already lowered
+
+execution loop is tighter
+
+Debugging differences
+Interpreted mode
+Often easier for:
+
+semantic debugging
+
+tracing expressions
+
+error messages tied to syntax
+
+Compiled mode
+Better for:
+
+repeatable execution
+
+instruction tracing
+
+performance tuning
+
+Which compiled mode is best for you?
+Given your stack:
+
+Best first runtime story
+Interpreted mode
+
+because it gets the language alive fastest.
+
+Best long-term deployment story
+Compile OCaml directly to p-code
+
+because you already have:
+
+a VM
+
+a compiler path
+
+a portable abstract machine
+
+A second custom OCaml bytecode VM is useful only if you want the extra separation.
+
+Concrete example
+Suppose the user program is:
+
+let rec fact n =
+  if n = 0 then 1 else n * fact (n - 1)
+
+let main = fact 5
+In interpreted mode
+Packaged binary contains:
+
+native p-code VM
+
+Pascal OCaml interpreter
+
+source text above
+
+At runtime:
+
+VM starts
+
+interpreter lexes/parses source
+
+builds AST
+
+evaluator executes main
+
+In compiled-to-bytecode mode
+Build-time:
+
+OCaml compiler turns this into something like:
+
+PUSH_CONST 5
+CALL fact
+STORE main
+HALT
+
+fact:
+  LOAD_ARG 0
+  PUSH_CONST 0
+  EQ
+  JZ L1
+  PUSH_CONST 1
+  RET
+L1:
+  LOAD_ARG 0
+  LOAD_ARG 0
+  PUSH_CONST 1
+  SUB
+  CALL fact
+  MUL
+  RET
+Runtime:
+
+p-code VM runs Pascal OCaml bytecode executor
+
+executor interprets this OCaml bytecode
+
+In compiled-to-p-code mode
+Build-time:
+
+OCaml compiler lowers directly to p-code-like procedures and calls
+
+Runtime:
+
+p-code VM executes generated p-code directly
+
+no source parser, no OCaml bytecode executor
+
+My recommendation in one sentence
+Use:
+interpreted mode first
+
+then move to direct OCaml-to-p-code compilation
+
+only add a separate OCaml bytecode layer if you specifically want an intermediate portable instruction set
+
+Practical staged roadmap
+Stage 1
+Implement:
+
+lexer
+
+parser
+
+AST
+
+evaluator
+
+Deliver:
+
+ocamlrun-style interpreter app on COR24
+
+Stage 2
+Add:
+
+AST to p-code lowering
+
+Deliver:
+
+ocamlc-style compiler producing p-code package
+
+Stage 3
+Add:
+
+packaging/linking tool that bundles:
+
+p-code VM native image
+
+runtime library p-code
+
+app p-code
+
+Deliver:
+
+single-file deployable COR24 OCaml application
+
+Bottom line
+Interpreted mode
+Final binary contains:
+
+native p-code VM
+
+Pascal OCaml interpreter
+
+OCaml source/AST
+
+At runtime:
+
+VM calls OCaml interpreter
+
+interpreter runs OCaml app
+
+Compiled mode
+You have two versions:
+
+Compiled to OCaml bytecode
+Final binary contains:
+
+native p-code VM
+
+Pascal OCaml bytecode executor
+
+compiled OCaml bytecode
+
+At runtime:
+
+VM calls OCaml bytecode runtime
+
+runtime runs compiled OCaml app
+
+Compiled directly to p-code
+Final binary contains:
+
+native p-code VM
+
+runtime support
+
+p-code generated from OCaml
+
+At runtime:
+
+VM directly runs the OCaml-generated p-code app
+
+no OCaml interpreter is present at runtime
+
+Best long-term shape
+For your environment, the cleanest end-state is probably:
+
+OCaml subset source → Pascal OCaml compiler → p-code → packaged with native p-code VM → COR24 binary
+
+That gives you a real “binary application” without needing a second interpreter layer for OCaml at runtime.
+
+I can sketch the exact file/artifact layout next, for example .ml -> .ocp -> package -> cor24 image, with suggested module boundaries for interpreter-first then compiler-second.
+
+
+Since the target COR24 is embedded, it has a switch, an LED, and a memory maped I/O UART (w/interrupts and RTS/CTS).   How does OCaml surface low level I/O to an app in an idiomatic way?  Does OCaml support FFI?  Would it just be some built-in functions: sw?, led!, putch, getch?
+
+I’m checking the current OCaml runtime/FFI story from official sources, then I’ll map that onto your COR24 embedded design and suggest an idiomatic surface API.
+
+Thought for 13s
+Restating the design question
+Your target is not Unix. It is an embedded COR24 system with:
+
+a switch
+
+an LED
+
+a memory-mapped UART
+
+interrupts and hardware flow control
+
+So the question is not “how does stock desktop OCaml do files and sockets?” but:
+
+how should an OCaml subset for COR24 expose low-level device I/O idiomatically,
+
+whether OCaml has an FFI / primitive interface,
+
+and whether the right answer is just to provide a small set of built-ins like sw?, led!, putch, getch.
+
+Short answer
+Yes — for your system, the cleanest approach is:
+
+expose a small runtime/primitive layer
+
+bind it into the language as built-in functions or external primitives
+
+then optionally wrap those primitives in a more idiomatic OCaml module API
+
+OCaml does support calling out to lower-level code through externals / primitives, and the standard implementation’s official FFI story is via C stubs and external declarations. 
+
+For your COR24 subset, that maps naturally to:
+
+runtime primitives implemented in Pascal / p-code / VM hooks
+
+surfaced to OCaml as things analogous to:
+
+switch : unit -> bool
+
+set_led : bool -> unit
+
+uart_getc : unit -> int option
+
+uart_putc : int -> unit
+
+That is more idiomatic than baking punctuation-heavy names directly into the core syntax.
+
+What is “idiomatic” in OCaml?
+Native OCaml style
+OCaml usually surfaces effects through:
+
+functions
+
+grouped in modules
+
+often with explicit unit arguments for effectful reads
+
+For example, OCaml’s standard library exposes I/O as functions like input_char, output_char, stdin, and stdout, rather than special syntax or magic operators. 
+
+So if you want your embedded OCaml to feel “OCaml-like,” prefer this shape:
+
+module Board : sig
+  val switch : unit -> bool
+  val set_led : bool -> unit
+end
+
+module Uart : sig
+  val putc : char -> unit
+  val getc : unit -> char option
+end
+instead of making the user write:
+
+sw? ()
+led! 1
+putch 65
+You can provide names like putch and getch, but the more idiomatic OCaml surface is:
+
+nouns for modules
+
+snake_case function names
+
+unit -> ... for reads
+
+plain functions for writes
+
+Does OCaml support FFI?
+Yes
+Mainline OCaml explicitly supports a foreign-function interface via external declarations and user-defined primitives implemented in lower-level code. The official manual’s “Interfacing C with OCaml” chapter describes exactly that: C functions can be linked with OCaml code and called from OCaml functions, and C can also call back into OCaml. 
+
+In stock OCaml, it looks like this conceptually:
+
+external uart_putc : int -> unit = "caml_uart_putc"
+external uart_getc : unit -> int = "caml_uart_getc"
+On a normal host build, those names map to C runtime functions. 
+
+For your subset
+You do not need to literally use C.
+
+You can copy the design pattern:
+
+language surface has external or built-in primitive declarations
+
+backend/runtime maps those names to:
+
+Pascal runtime procedures
+
+VM opcodes
+
+memory-mapped I/O helpers
+
+interrupt-driven ring buffer services
+
+So in your OCaml-on-COR24, “FFI” probably really means:
+
+binding OCaml primitives to runtime entry points implemented in your Pascal+p-code+VM runtime
+
+not binding to hosted C libraries.
+
+What should the surface API look like?
+My recommendation: two layers
+Layer 1: primitive runtime hooks
+These are low-level and close to hardware.
+
+Examples:
+
+external mmio_read8  : int -> int = "mmio_read8"
+external mmio_write8 : int -> int -> unit = "mmio_write8"
+external enable_irq  : int -> unit = "enable_irq"
+external disable_irq : int -> unit = "disable_irq"
+These are useful for the runtime and maybe advanced users.
+
+Layer 2: board/device modules
+These are what applications normally use.
+
+Examples:
+
+module Board : sig
+  val switch : unit -> bool
+  val set_led : bool -> unit
+  val led_on : unit -> unit
+  val led_off : unit -> unit
+end
+
+module Uart : sig
+  val putc : char -> unit
+  val puts : string -> unit
+  val getc : unit -> char option
+  val getc_blocking : unit -> char
+  val can_read : unit -> bool
+  val can_write : unit -> bool
+end
+This is the sweet spot:
+
+low-level enough for embedded work
+
+high-level enough to be pleasant
+
+idiomatic in an ML-family language
+
+Should they just be built-in functions?
+Yes, initially
+For your first implementation, I would absolutely make them built-in primitives.
+
+That is the simplest path.
+
+Examples:
+
+switch : unit -> bool
+
+set_led : bool -> unit
+
+putc : char -> unit
+
+getc : unit -> char option
+
+Then later you can implement a small prelude module:
+
+module Board = struct
+  external switch  : unit -> bool = "board_switch"
+  external set_led : bool -> unit = "board_set_led"
+
+  let led_on ()  = set_led true
+  let led_off () = set_led false
+end
+So the app sees a nice API, while the runtime sees raw primitives.
+
+Should you use names like sw? and led!?
+Technically possible in a custom subset, but I would not
+This is more Lispy/Scheme/APL/Forth-ish than OCaml-ish.
+
+OCaml style usually avoids punctuation-heavy identifiers for ordinary library functions. If you want your language to feel like “integer subset OCaml,” prefer names like:
+
+switch
+
+set_led
+
+led_on
+
+led_off
+
+uart_getc
+
+uart_putc
+
+rather than:
+
+sw?
+
+led!
+
+Better OCaml-ish names
+Hardware action	Good OCaml-ish name
+read switch	switch : unit -> bool
+write LED	set_led : bool -> unit
+write char to UART	putc : char -> unit
+read char from UART	getc : unit -> char option
+poll readable	can_read : unit -> bool
+poll writable	can_write : unit -> bool
+If you want a little embedded flavor, you could still alias:
+
+let sw = switch
+let led = set_led
+But I would keep the canonical interface conventional.
+
+How to model UART idiomatically
+Blocking vs nonblocking
+You have a UART with interrupts and RTS/CTS, so there are really several semantic layers.
+
+Lowest level
+read RX register
+
+write TX register
+
+test status bits
+
+enable/disable interrupts
+
+App-facing level
+Usually you want something like:
+
+module Uart : sig
+  val getc : unit -> char option
+  val getc_blocking : unit -> char
+  val putc : char -> unit
+  val puts : string -> unit
+  val flush : unit -> unit
+end
+Why char option is nice
+That is very OCaml-like:
+
+Some c if a character is available
+
+None if no character is ready
+
+This is cleaner than returning -1.
+
+Interrupt-driven UART
+Internally, the runtime can use:
+
+RX interrupt fills ring buffer
+
+TX interrupt drains ring buffer
+
+getc pops from RX queue
+
+putc queues to TX queue or blocks if full
+
+The OCaml app should not need to know about raw MMIO unless it is writing a device driver.
+
+How to model the switch and LED
+Switch
+A read-only input naturally maps to:
+
+val switch : unit -> bool
+or if you eventually have more than one input:
+
+val read_gpio : int -> bool
+LED
+A write-only output naturally maps to:
+
+val set_led : bool -> unit
+with convenience wrappers:
+
+val led_on : unit -> unit
+val led_off : unit -> unit
+val toggle_led : unit -> unit
+This is much nicer than exposing raw bit twiddling in the app layer.
+
+What about memory-mapped I/O directly?
+Support it, but do not make it the main app API
+For embedded work, I would include a tiny unsafe module, something like:
+
+module Mmio : sig
+  val read8  : int -> int
+  val write8 : int -> int -> unit
+end
+But that should be for:
+
+runtime code
+
+board support packages
+
+advanced users
+
+not normal applications.
+
+Otherwise every application turns into handwritten register code, and you lose most of the value of having OCaml at all.
+
+Interpreted mode vs compiled mode: how I/O differs
+This is important in your architecture.
+
+In interpreted mode
+The OCaml interpreter itself recognizes primitive calls like Board.switch () and dispatches them to runtime functions.
+
+Runtime path:
+
+COR24 native
+  -> p-code VM
+    -> Pascal OCaml interpreter
+      -> primitive dispatch
+        -> board/UART runtime
+          -> MMIO / buffers / interrupts
+So switch () is interpreted as a primitive call, not as ordinary user code.
+
+In compiled mode
+Your OCaml compiler emits either:
+
+p-code calls to runtime entry points
+
+or bytecode ops that the runtime maps to board/UART services
+
+Runtime path:
+
+COR24 native
+  -> p-code VM
+    -> compiled OCaml p-code
+      -> runtime helper / primitive
+        -> MMIO / buffers / interrupts
+So in compiled mode, I/O calls become more direct. No AST-walking interpreter is involved.
+
+Difference
+Interpreted mode: primitive lookup/dispatch happens through the OCaml interpreter
+
+Compiled mode: primitive call is already lowered into a direct runtime call
+
+That is one reason compiled mode will feel much cleaner for embedded I/O.
+
+Should there be a formal FFI in your subset?
+Eventually yes, but start very small
+You do not need “full OCaml FFI” immediately.
+
+I would stage it like this.
+
+Stage 1: hardwired primitives
+Interpreter/compiler knows these names specially:
+
+switch
+
+set_led
+
+putc
+
+getc
+
+Stage 2: declarative externals
+Add something like:
+
+external switch : unit -> bool = "board_switch"
+external putc   : char -> unit = "uart_putc"
+Now your language looks more like real OCaml.
+
+Stage 3: module-wrapped board support
+Provide board library modules implemented partly in OCaml:
+
+module Board = struct
+  external switch  : unit -> bool = "board_switch"
+  external set_led : bool -> unit = "board_set_led"
+end
+That gives you a clean separation between:
+
+compiler/runtime mechanism
+
+user-facing embedded API
+
+Suggested API for your first embedded OCaml subset
+I would start with this:
+
+module Board : sig
+  val switch : unit -> bool
+  val set_led : bool -> unit
+  val led_on : unit -> unit
+  val led_off : unit -> unit
+end
+
+module Uart : sig
+  val putc : char -> unit
+  val puts : string -> unit
+  val getc : unit -> char option
+  val getc_blocking : unit -> char
+  val can_read : unit -> bool
+  val can_write : unit -> bool
+end
+And optionally a lower-level module:
+
+module Mmio : sig
+  val read8 : int -> int
+  val write8 : int -> int -> unit
+end
+Example of idiomatic app code
+let rec echo () =
+  match Uart.getc () with
+  | None -> echo ()
+  | Some c ->
+      Uart.putc c;
+      if Board.switch () then Board.led_on ()
+      else Board.led_off ();
+      echo ()
+
+let () = echo ()
+That feels like OCaml.
+
+By contrast, this:
+
+let rec loop () =
+  let c = getch () in
+  putch c;
+  led! (sw? ());
+  loop ()
+may be compact, but it feels more like a custom embedded DSL than OCaml.
+
+Recommendation
+Best design
+Use built-in runtime primitives, but surface them as ordinary OCaml functions in modules.
+
+Best naming
+Prefer:
+
+switch
+
+set_led
+
+putc
+
+getc
+
+over:
+
+sw?
+
+led!
+
+Best internal mechanism
+Model them like OCaml external primitives, even if the backend is your Pascal/p-code runtime rather than C. Mainline OCaml’s official foreign interface is built around user-defined primitives called from OCaml functions, which is exactly the architectural pattern you want to imitate. 
+
+Best layering
+raw MMIO for runtime and experts
+
+board/UART modules for applications
+
+Bottom line
+Yes, OCaml has an FFI model. In stock OCaml it is based on external declarations and lower-level primitives implemented in C. 
+
+For your COR24 subset, the clean embedded answer is:
+
+implement low-level device access in the runtime
+
+expose it as built-in or external primitives
+
+wrap it in modules like Board and Uart
+
+So the application author writes:
+
+if Board.switch () then Board.led_on ();
+Uart.putc 'A'
+not raw MMIO and probably not punctuation-style names.
+
+If you want, I can draft a mini embedded OCaml prelude for COR24, including the primitive table, the Pascal runtime entry points, and the OCaml signatures for interpreted and compiled modes.
+
+
+what classic OCaml demo programs are commonly shown?  Can you show the source here for hello world, fibonacci, factorial, and other OCaml showcasing demos?
+
+Restating your request
+You want:
+
+classic OCaml demo programs
+
+actual source code examples
+
+focused on:
+
+Hello World
+
+Fibonacci
+
+Factorial
+
+plus a few “showcase” demos that highlight OCaml’s strengths
+
+Also, given your COR24 target, I’ll bias toward:
+
+simple, portable subset-friendly code
+
+minimal reliance on large stdlib features
+
+clear mapping to your eventual interpreter/compiler
+
+1. Hello, World
+Simplest form
+print_endline "Hello, world!"
+Notes
+print_endline : string -> unit
+
+prints string + newline
+
+Explicit entry point style
+let () =
+  print_endline "Hello, world!"
+This is the idiomatic “main” form in OCaml.
+
+2. Factorial
+Recursive version (classic)
+let rec fact n =
+  if n = 0 then 1
+  else n * fact (n - 1)
+
+let () =
+  print_int (fact 5);
+  print_newline ()
+Shows
+recursion (let rec)
+
+conditionals
+
+integer arithmetic
+
+Tail-recursive version (important demo)
+let fact n =
+  let rec aux acc n =
+    if n = 0 then acc
+    else aux (acc * n) (n - 1)
+  in
+  aux 1 n
+
+let () =
+  print_int (fact 5);
+  print_newline ()
+Shows
+inner functions
+
+tail recursion (important for your VM stack model)
+
+3. Fibonacci
+Naive recursive (classic but inefficient)
+let rec fib n =
+  if n <= 1 then n
+  else fib (n - 1) + fib (n - 2)
+
+let () =
+  print_int (fib 10);
+  print_newline ()
+Shows
+recursion tree
+
+function calls
+
+Tail-recursive Fibonacci
+let fib n =
+  let rec aux a b n =
+    if n = 0 then a
+    else aux b (a + b) (n - 1)
+  in
+  aux 0 1 n
+
+let () =
+  print_int (fib 10);
+  print_newline ()
+Better for COR24
+predictable stack usage
+
+efficient loop-like behavior
+
+4. Pattern Matching Demo
+Basic pattern matching
+let describe n =
+  match n with
+  | 0 -> "zero"
+  | 1 -> "one"
+  | _ -> "many"
+
+let () =
+  print_endline (describe 2)
+Shows
+match ... with
+
+_ wildcard
+
+5. Lists (core OCaml strength)
+Sum of a list
+let rec sum lst =
+  match lst with
+  | [] -> 0
+  | x :: xs -> x + sum xs
+
+let () =
+  print_int (sum [1;2;3;4]);
+  print_newline ()
+Shows
+algebraic data types (lists)
+
+pattern matching
+
+recursion
+
+Tail-recursive list sum
+let sum lst =
+  let rec aux acc lst =
+    match lst with
+    | [] -> acc
+    | x :: xs -> aux (acc + x) xs
+  in
+  aux 0 lst
+6. Higher-Order Functions
+Map
+let rec map f lst =
+  match lst with
+  | [] -> []
+  | x :: xs -> f x :: map f xs
+
+let () =
+  let result = map (fun x -> x * 2) [1;2;3] in
+  List.iter (fun x -> print_int x; print_string " ") result;
+  print_newline ()
+Shows
+functions as values
+
+anonymous functions (fun x -> ...)
+
+7. Closures (very important demo)
+let make_adder x =
+  fun y -> x + y
+
+let add5 = make_adder 5
+
+let () =
+  print_int (add5 3);  (* prints 8 *)
+  print_newline ()
+Shows
+closures capturing environment
+
+essential for your runtime design
+
+8. Simple Interpreter-style Example (very relevant to you)
+Expression evaluator
+type expr =
+  | Const of int
+  | Add of expr * expr
+  | Mul of expr * expr
+
+let rec eval e =
+  match e with
+  | Const n -> n
+  | Add (a, b) -> eval a + eval b
+  | Mul (a, b) -> eval a * eval b
+
+let () =
+  let e = Add (Const 2, Mul (Const 3, Const 4)) in
+  print_int (eval e);  (* 2 + 3*4 = 14 *)
+  print_newline ()
+Shows
+algebraic data types
+
+recursive types
+
+interpreters (VERY relevant to your OCaml-on-COR24 work)
+
+9. Option Type (important for embedded I/O)
+let safe_div x y =
+  if y = 0 then None
+  else Some (x / y)
+
+let () =
+  match safe_div 10 2 with
+  | None -> print_endline "division by zero"
+  | Some v ->
+      print_int v;
+      print_newline ()
+Shows
+option type
+
+safe error handling without exceptions
+
+10. Simple REPL-style loop (embedded-friendly)
+let rec loop () =
+  print_string "Enter number: ";
+  let n = read_int () in
+  print_int (n * n);
+  print_newline ();
+  loop ()
+
+let () = loop ()
+For COR24
+You would replace:
+
+read_int
+
+print_*
+
+with your UART functions.
+
+11. Embedded-style demo (adapted for your system)
+This is closer to what you actually want.
+
+let rec loop () =
+  match Uart.getc () with
+  | None -> loop ()
+  | Some c ->
+      Uart.putc c;
+      if Board.switch () then Board.led_on ()
+      else Board.led_off ();
+      loop ()
+
+let () = loop ()
+Shows
+real embedded behavior
+
+event loop
+
+polling model
+
+12. Mutual recursion
+let rec even n =
+  if n = 0 then true else odd (n - 1)
+
+and odd n =
+  if n = 0 then false else even (n - 1)
+
+let () =
+  print_endline (if even 4 then "even" else "odd")
+Shows
+let rec ... and ...
+
+multiple functions in same recursion group
+
+What demos matter most for your implementation
+Given your COR24 goals, the most important demos are:
+
+Critical for your runtime design
+factorial (recursion)
+
+fibonacci (recursion + performance)
+
+closures (make_adder)
+
+list processing (sum, map)
+
+pattern matching
+
+Critical for your compiler/interpreter
+expression evaluator (AST)
+
+option type (None / Some)
+
+match expressions
+
+Critical for embedded usage
+UART loop
+
+polling/event loop
+
+What you can skip initially
+To keep your subset manageable, you can delay:
+
+modules
+
+polymorphism
+
+full type inference
+
+exceptions
+
+objects/classes
+
+functors
+
+Minimal subset you need to support these demos
+To run most of the above, your OCaml subset needs:
+
+integers
+
+functions
+
+recursion
+
+if
+
+let / let rec
+
+pattern matching
+
+lists (optional but valuable)
+
+simple algebraic types (option at least)
+
+Bottom line
+Classic OCaml demos usually emphasize:
+
+recursion (factorial, fib)
+
+pattern matching
+
+lists
+
+higher-order functions
+
+closures
+
+algebraic data types
+
+For your COR24 system, the most meaningful demos are:
+
+factorial / fib (runtime + recursion)
+
+closure (make_adder)
+
+list processing
+
+AST evaluator (for your compiler work)
+
+UART loop (your real-world target)
+
+If you want next, I can:
+
+trim these into a minimal OCaml subset test suite
+
+or map each demo to required language features, so you can drive your interpreter/compiler development incrementally.
+
+
+
+
