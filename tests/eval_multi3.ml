@@ -1,0 +1,1 @@
+let f = fun x y z -> x + y + z in print_int (f 10 20 12)

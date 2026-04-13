@@ -1,0 +1,1 @@
+Added semicolon sequencing. e1; e2 desugars to let _ = e1 in e2. Works at top level, inside parens, after let...in and fun->. 19 reg-rs tests passing.

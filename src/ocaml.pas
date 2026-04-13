@@ -178,6 +178,7 @@ begin new(n); n^.kind := EK_APP; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen
 { === Parser === }
 function parse_expr: PExpr; forward;
 function parse_seq: PExpr; forward;
+function parse_fun_params: PExpr; forward;
 function is_atom_start: boolean;
 begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) end;
 function parse_atom: PExpr;
@@ -229,6 +230,26 @@ begin e := parse_compare;
   while ((tok=TK_ANDAND) or (tok=TK_OROR)) and not parse_error do
   begin o := tok; lex_next; r := parse_compare; e := mk_binop(o, e, r) end;
   parse_logic := e end;
+function parse_fun_params: PExpr;
+{ Read one param, then either ARROW + body or more params.
+  fun x y z -> body becomes fun x -> fun y -> fun z -> body }
+var e, body_e: PExpr; my_noff, my_nlen: integer;
+begin
+  parse_fun_params := nil;
+  if tok=TK_IDENT then begin
+    my_noff := pool_intern; my_nlen := tok_id_len; lex_next
+  end else begin parse_error := true; exit end;
+  if tok=TK_ARROW then begin
+    lex_next; body_e := parse_seq
+  end else begin
+    body_e := parse_fun_params
+  end;
+  if parse_error then exit;
+  e := mk_fun_node(body_e);
+  e^.noff := my_noff; e^.nlen := my_nlen;
+  parse_fun_params := e
+end;
+
 function parse_expr: PExpr;
 var e, val_e, body_e: PExpr; is_rec: boolean; my_noff, my_nlen: integer;
 begin parse_expr := nil;
@@ -248,11 +269,7 @@ begin parse_expr := nil;
     if tok=TK_ELSE then lex_next else begin parse_error := true; exit end;
     e := parse_expr; parse_expr := mk_if(val_e, body_e, e); exit end;
   if tok=TK_FUN then begin lex_next;
-    if tok=TK_IDENT then begin my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
-    else begin parse_error := true; exit end;
-    if tok=TK_ARROW then lex_next else begin parse_error := true; exit end;
-    body_e := parse_seq; e := mk_fun_node(body_e);
-    e^.noff := my_noff; e^.nlen := my_nlen; parse_expr := e; exit end;
+    parse_expr := parse_fun_params; exit end;
   parse_expr := parse_logic end;
 
 function parse_seq: PExpr;
