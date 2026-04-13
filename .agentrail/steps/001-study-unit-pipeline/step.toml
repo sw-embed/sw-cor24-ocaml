@@ -1,6 +1,6 @@
 number = 1
 slug = "study-unit-pipeline"
-status = "pending"
+status = "in-progress"
 description = "Study how p24p unit compilation works and how the Pascal project's multi-unit..."
 role = "production"
 context_files = []
