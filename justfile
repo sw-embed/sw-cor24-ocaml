@@ -26,6 +26,25 @@ test-quiet:
 test-report:
     REG_RS_DATA_DIR=work/reg-rs reg-rs report -vv
 
+# Build the OCaml interpreter
+build:
+    ./scripts/build.sh
+
+# Run an OCaml program
+# Usage: just run tests/eval_fact.ml
+run file:
+    ./scripts/run-ocaml.sh {{file}}
+
+# Run the target demo: 42
+demo:
+    @echo 'let x = 41 + 1 in print_int x' > /tmp/ocaml_demo.ml
+    @./scripts/run-ocaml.sh /tmp/ocaml_demo.ml
+    @rm -f /tmp/ocaml_demo.ml
+
+# Run factorial demo
+demo-fact:
+    @./scripts/run-ocaml.sh tests/eval_fact.ml
+
 # Smoke test: verify toolchain works
 smoke:
     @echo "--- Hello World ---"
