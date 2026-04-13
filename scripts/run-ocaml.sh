@@ -4,7 +4,7 @@
 #
 # Usage: ./scripts/run-ocaml.sh <file.ml> [max_instructions]
 #
-# Requires build/ocaml.bin (run ./scripts/build.sh first)
+# Requires build/ocaml.p24m and build/pvm.bin (run ./scripts/build.sh first)
 set -euo pipefail
 
 ML="${1:?Usage: $0 <file.ml> [max_instructions]}"
@@ -12,29 +12,26 @@ MAX_INSTRS="${2:-500000000}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-. "$REPO_ROOT/vendor/active.env"
-
-PVM="$REPO_ROOT/vendor/sw-pcode/$SW_PCODE_VERSION/bin/pvm.s"
 BUILD_DIR="$REPO_ROOT/build"
 
-COR24_RUN="$REPO_ROOT/vendor/sw-em24/$SW_EM24_VERSION/bin/cor24-run"
+COR24_RUN="$REPO_ROOT/vendor/sw-em24/$(. "$REPO_ROOT/vendor/active.env" && echo "$SW_EM24_VERSION")/bin/cor24-run"
 if [ ! -f "$COR24_RUN" ]; then COR24_RUN="$(command -v cor24-run 2>/dev/null || true)"; fi
 if [ -z "$COR24_RUN" ]; then echo "error: cor24-run not found" >&2; exit 1; fi
 
-if [ ! -f "$BUILD_DIR/ocaml.bin" ]; then
-  echo "error: build/ocaml.bin not found. Run ./scripts/build.sh first." >&2
+if [ ! -f "$BUILD_DIR/ocaml.p24m" ]; then
+  echo "error: build/ocaml.p24m not found. Run ./scripts/build.sh first." >&2
   exit 1
 fi
 
-CODE_PTR_ADDR=$(cat "$BUILD_DIR/code_ptr_addr.txt")
+CODE_PTR=$(cat "$BUILD_DIR/code_ptr_addr.txt")
 ML_INPUT=$(cat "$ML")
 
-"$COR24_RUN" --run "$PVM" \
-  --load-binary "$BUILD_DIR/ocaml.bin@0x010000" \
-  --load-binary "$BUILD_DIR/code_ptr.bin@${CODE_PTR_ADDR}" \
-  -u "${ML_INPUT}"$'\x04' --speed 0 -n "$MAX_INSTRS" 2>&1 | \
+"$COR24_RUN" --load-binary "$BUILD_DIR/pvm.bin@0" \
+  --load-binary "$BUILD_DIR/ocaml.p24m@0x010000" \
+  --patch "0x${CODE_PTR}=0x010000" \
+  --entry 0 -u "${ML_INPUT}"$'\x04' --speed 0 -n "$MAX_INSTRS" 2>&1 | \
+  awk '/^PVM OK$/ { found=1; next } /^HALT$/ { found=0; next } found { print }' | \
   grep -v '^\[' | grep -v '^Assembled' | grep -v '^Running' | \
-  grep -v '^Executed' | grep -v '^Loaded' | grep -v '^PVM OK' | \
-  grep -v '^UART output: PVM OK' | grep -v '^CPU halted' | \
+  grep -v '^Executed' | grep -v '^Loaded' | \
   grep -v 'LEDs:' | grep -v 'UART TX' | \
-  grep -v '^$' | grep -v '^HALT$'
+  grep -v '^$'

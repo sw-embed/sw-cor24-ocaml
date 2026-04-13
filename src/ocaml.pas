@@ -1,5 +1,5 @@
 program OCaml;
-uses Hardware;
+uses Hardware, units;
 { OCaml subset interpreter for COR24.
   Reads source from stdin, lexes, parses, and evaluates.
   Prints result or side-effect output from print_int.

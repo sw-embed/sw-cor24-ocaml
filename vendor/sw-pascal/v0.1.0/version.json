@@ -4,7 +4,7 @@
   "description": "Pascal compiler targeting P-code VM (p24p), plus runtime library",
   "repo": "https://github.com/sw-embed/sw-cor24-pascal.git",
   "repo_path_local": "../sw-cor24-pascal",
-  "commit": "7786744fb0dfb46f106762d995252820e457019c",
+  "commit": "c54dd48e0f670e0eb763390c3cb1b295b615165b",
   "tag": "TBD",
   "build_cmd": "TBD",
   "binary_src": "TBD",

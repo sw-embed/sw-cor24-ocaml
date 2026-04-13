@@ -4,7 +4,7 @@
   "description": "P-code toolchain: VM (pvm.s), assembler (pa24r), and linker (pl24r)",
   "repo": "https://github.com/sw-embed/sw-cor24-pcode.git",
   "repo_path_local": "../sw-cor24-pcode",
-  "commit": "1a67707f03bdfaacf8f68a008ef45529ef322dcc",
+  "commit": "0f951b33a361df491f87f213f2fb906e2d8b579d",
   "tag": "TBD",
   "build_cmd": "cargo build --release",
   "binary_src": "TBD",

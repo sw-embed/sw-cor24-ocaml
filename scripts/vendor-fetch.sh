@@ -133,6 +133,15 @@ fetch_pascal() {
     else
         echo "  info: runtime.spi not found (optional)"
     fi
+
+    # Pre-built runtime unit binary
+    local rt_p24_src="$upstream/runtime/p24p_rt.p24"
+    if [ -f "$rt_p24_src" ]; then
+        cp "$rt_p24_src" "$dest/bin/p24p_rt.p24"
+        echo "  copied: p24p_rt.p24"
+    else
+        echo "  info: p24p_rt.p24 not found (needed for unit mode)"
+    fi
 }
 
 # --- Fetch P-code toolchain artifacts ---------------------------------------
@@ -196,6 +205,16 @@ fetch_pcode() {
         echo "  copied: pl24r"
     else
         echo "  warning: pl24r not found at $pl24r_src (run 'cargo build --release' in sw-cor24-pcode)" >&2
+    fi
+
+    # p24-load linker for multi-unit images
+    local p24load_src="$upstream/target/release/p24-load"
+    if [ -f "$p24load_src" ]; then
+        cp "$p24load_src" "$dest/bin/p24-load"
+        chmod +x "$dest/bin/p24-load"
+        echo "  copied: p24-load"
+    else
+        echo "  warning: p24-load not found at $p24load_src (run 'cargo build --release' in sw-cor24-pcode)" >&2
     fi
 }
 
