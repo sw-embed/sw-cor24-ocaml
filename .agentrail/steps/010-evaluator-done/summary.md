@@ -1,0 +1,1 @@
+Working tree-walk evaluator with all Phase 0 features. Integers, booleans, arithmetic, comparisons, let/let rec, if/else, closures, function application, print_int. Recursive factorial fact 5 = 120. Updated vendored PVM with expanded segments. 17 reg-rs tests passing.
