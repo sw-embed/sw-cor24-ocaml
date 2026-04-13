@@ -1,0 +1,4 @@
+led_on ();
+let s = switch () in
+print_int s;
+led_off ()

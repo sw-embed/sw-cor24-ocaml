@@ -1,6 +1,6 @@
 number = 6
 slug = "led-toggle-demo"
-status = "pending"
+status = "in-progress"
 description = """
 Create the target demo: interactive LED toggle driven by switch input.
 

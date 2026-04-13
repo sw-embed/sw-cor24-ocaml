@@ -45,6 +45,10 @@ demo:
 demo-fact:
     @./scripts/run-ocaml.sh tests/eval_fact.ml
 
+# Run LED blink demo (board I/O)
+demo-led:
+    @./scripts/run-ocaml.sh tests/demo_led_blink.ml
+
 # Smoke test: verify toolchain works
 smoke:
     @echo "--- Hello World ---"

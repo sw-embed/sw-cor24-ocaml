@@ -1,0 +1,1 @@
+Added putc UART output primitive. Uses char variable for write(chr(n)) workaround. getc deferred since interpreter consumes stdin for source. putc 72;105;10 outputs Hi. 24 reg-rs tests passing.
