@@ -1,7 +1,9 @@
 program OCaml;
+uses Hardware;
 { OCaml subset interpreter for COR24.
   Reads source from stdin, lexes, parses, and evaluates.
-  Prints result or side-effect output from print_int. }
+  Prints result or side-effect output from print_int.
+  Board I/O: set_led, led_on, led_off, switch. }
 
 const
   TK_EOF=0; TK_INT=1; TK_IDENT=2;
@@ -47,6 +49,10 @@ var
   name_pool: array[0..2047] of char; name_pool_len: integer;
   parse_error: boolean; eval_error: boolean;
   print_int_noff: integer; print_int_nlen: integer;
+  set_led_noff: integer; set_led_nlen: integer;
+  led_on_noff: integer; led_on_nlen: integer;
+  led_off_noff: integer; led_off_nlen: integer;
+  switch_noff: integer; switch_nlen: integer;
   wildcard_noff: integer; wildcard_nlen: integer;
   ast: PExpr; result: PVal;
 
@@ -333,6 +339,43 @@ procedure intern_wildcard;
 begin wildcard_noff := name_pool_len;
   name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
   wildcard_nlen := 1 end;
+procedure intern_board;
+begin
+  set_led_noff := name_pool_len;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  set_led_nlen := 7;
+  led_on_noff := name_pool_len;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'o'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
+  led_on_nlen := 6;
+  led_off_noff := name_pool_len;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'o'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'f'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'f'; name_pool_len := name_pool_len+1;
+  led_off_nlen := 7;
+  switch_noff := name_pool_len;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'w'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
+  switch_nlen := 6
+end;
 function eval_expr(e: PExpr; env: PEnv): PVal; forward;
 function eval_expr(e: PExpr; env: PEnv): PVal;
 var lv, rv, fv, av: PVal; l, r, x, bd: PExpr; ne, ce: PEnv; a, b, res: integer;
@@ -343,6 +386,14 @@ begin eval_expr := nil;
   if e^.kind = EK_VAR then begin
     if names_equal(e^.noff, e^.nlen, print_int_noff, print_int_nlen) then begin
       eval_expr := mk_val_closure(print_int_noff, print_int_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, set_led_noff, set_led_nlen) then begin
+      eval_expr := mk_val_closure(set_led_noff, set_led_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, led_on_noff, led_on_nlen) then begin
+      eval_expr := mk_val_closure(led_on_noff, led_on_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, led_off_noff, led_off_nlen) then begin
+      eval_expr := mk_val_closure(led_off_noff, led_off_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, switch_noff, switch_nlen) then begin
+      eval_expr := mk_val_closure(switch_noff, switch_nlen, nil, nil); exit end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
@@ -392,6 +443,15 @@ begin eval_expr := nil;
       if fv^.body = nil then begin
         if names_equal(fv^.noff, fv^.nlen, print_int_noff, print_int_nlen) then begin
           writeln(av^.ival); eval_expr := mk_val_unit; exit end;
+        if names_equal(fv^.noff, fv^.nlen, set_led_noff, set_led_nlen) then begin
+          if av^.ival <> 0 then LedOn else LedOff;
+          eval_expr := mk_val_unit; exit end;
+        if names_equal(fv^.noff, fv^.nlen, led_on_noff, led_on_nlen) then begin
+          LedOn; eval_expr := mk_val_unit; exit end;
+        if names_equal(fv^.noff, fv^.nlen, led_off_noff, led_off_nlen) then begin
+          LedOff; eval_expr := mk_val_unit; exit end;
+        if names_equal(fv^.noff, fv^.nlen, switch_noff, switch_nlen) then begin
+          eval_expr := mk_val_bool(ReadSwitch); exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
       ne := env_extend(ce, fv^.noff, fv^.nlen, av);
@@ -403,6 +463,7 @@ begin eval_expr := nil;
 begin
   name_pool_len := 0;
   intern_print_int;
+  intern_board;
   intern_wildcard;
   lex_init;
   parse_error := false;

@@ -36,4 +36,5 @@ ML_INPUT=$(cat "$ML")
   grep -v '^\[' | grep -v '^Assembled' | grep -v '^Running' | \
   grep -v '^Executed' | grep -v '^Loaded' | grep -v '^PVM OK' | \
   grep -v '^UART output: PVM OK' | grep -v '^CPU halted' | \
+  grep -v 'LEDs:' | grep -v 'UART TX' | \
   grep -v '^$' | grep -v '^HALT$'

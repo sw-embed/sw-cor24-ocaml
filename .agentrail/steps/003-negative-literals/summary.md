@@ -1,0 +1,1 @@
+Negative literals already work via parse_unary desugaring -e to (0 - e). Added regression test to formalize. 22 tests passing.
