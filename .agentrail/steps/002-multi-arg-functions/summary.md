@@ -1,0 +1,1 @@
+Added multi-argument functions. fun x y z -> body desugars to nested closures via recursive parse_fun_params. 2-arg and 3-arg functions verified. 21 reg-rs tests passing.

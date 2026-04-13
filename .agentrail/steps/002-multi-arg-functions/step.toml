@@ -1,6 +1,6 @@
 number = 2
 slug = "multi-arg-functions"
-status = "in-progress"
+status = "completed"
 description = """
 Add multi-argument function support.
 
@@ -8,4 +8,5 @@ Currently fun x -> body only supports o..."""
 role = "production"
 context_files = []
 created_at = "2026-04-12T18:05:35"
-commits = []
+completed_at = "2026-04-12T18:18:16"
+commits = ["6bd3ec0cf3110b7a5942678e11ea39b01676de8c"]

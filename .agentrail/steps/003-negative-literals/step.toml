@@ -1,6 +1,6 @@
 number = 3
 slug = "negative-literals"
-status = "pending"
+status = "in-progress"
 description = """
 Add support for negative integer literals in atom position.
 
