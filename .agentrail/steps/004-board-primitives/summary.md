@@ -1,0 +1,1 @@
+Added COR24 board I/O primitives: set_led, led_on, led_off, switch. Uses Pascal Hardware unit (LedOn/LedOff/ReadSwitch -> P-code VM syscalls). Filtered emulator status output. 23 reg-rs tests passing.

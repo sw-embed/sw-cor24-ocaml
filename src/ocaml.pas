@@ -53,6 +53,8 @@ var
   led_on_noff: integer; led_on_nlen: integer;
   led_off_noff: integer; led_off_nlen: integer;
   switch_noff: integer; switch_nlen: integer;
+  putc_noff: integer; putc_nlen: integer;
+  putc_ch: char;
   wildcard_noff: integer; wildcard_nlen: integer;
   ast: PExpr; result: PVal;
 
@@ -374,7 +376,13 @@ begin
   name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
-  switch_nlen := 6
+  switch_nlen := 6;
+  putc_noff := name_pool_len;
+  name_pool[name_pool_len] := 'p'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'u'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
+  putc_nlen := 4
 end;
 function eval_expr(e: PExpr; env: PEnv): PVal; forward;
 function eval_expr(e: PExpr; env: PEnv): PVal;
@@ -394,6 +402,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(led_off_noff, led_off_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, switch_noff, switch_nlen) then begin
       eval_expr := mk_val_closure(switch_noff, switch_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, putc_noff, putc_nlen) then begin
+      eval_expr := mk_val_closure(putc_noff, putc_nlen, nil, nil); exit end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
@@ -452,6 +462,8 @@ begin eval_expr := nil;
           LedOff; eval_expr := mk_val_unit; exit end;
         if names_equal(fv^.noff, fv^.nlen, switch_noff, switch_nlen) then begin
           eval_expr := mk_val_bool(ReadSwitch); exit end;
+        if names_equal(fv^.noff, fv^.nlen, putc_noff, putc_nlen) then begin
+          putc_ch := chr(av^.ival); write(putc_ch); eval_expr := mk_val_unit; exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
       ne := env_extend(ce, fv^.noff, fv^.nlen, av);
