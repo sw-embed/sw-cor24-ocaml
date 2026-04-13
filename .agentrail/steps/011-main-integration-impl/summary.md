@@ -1,0 +1,1 @@
+Standalone OCaml interpreter for COR24. Promoted test_eval.pas to src/ocaml.pas. Added build.sh (Pascal -> p-code binary) and run-ocaml.sh. Justfile targets: build, run, demo, demo-fact. Target demo outputs 42, factorial outputs 120. 17 reg-rs tests passing.

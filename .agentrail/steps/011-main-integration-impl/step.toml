@@ -1,6 +1,6 @@
 number = 11
 slug = "main-integration-impl"
-status = "in-progress"
+status = "completed"
 description = """
 Wire everything together into a standalone OCaml interpreter.
 
@@ -8,4 +8,5 @@ Create src/oca..."""
 role = "production"
 context_files = []
 created_at = "2026-04-12T17:43:19"
-commits = []
+completed_at = "2026-04-12T17:52:20"
+commits = ["dc8807620e2727f8d7a9755f633b26cae7bcdae7"]
