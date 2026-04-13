@@ -1,6 +1,6 @@
 number = 9
 slug = "evaluator-impl"
-status = "in-progress"
+status = "blocked"
 description = "Implement the tree-walk evaluator, environment model, and print_int primitive..."
 role = "production"
 context_files = []

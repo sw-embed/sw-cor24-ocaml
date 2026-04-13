@@ -1,0 +1,2 @@
+command = "./scripts/run-eval-test.sh tests/eval_int.ml 500000000"
+exit_code = 0

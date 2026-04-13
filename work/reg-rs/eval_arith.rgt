@@ -1,0 +1,2 @@
+command = "./scripts/run-eval-test.sh tests/lex_arith.ml 500000000"
+exit_code = 0

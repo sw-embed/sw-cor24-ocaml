@@ -1,0 +1,1 @@
+BLOCKED: Blocked on sw-embed/sw-cor24-pascal#13: forward-declared functions with pointer-type parameters lose field access. eval_expr is recursive and takes PExpr/PEnv parameters -- cannot access e^.kind without the fix. Evaluator code is written and committed.
