@@ -1,0 +1,1 @@
+Demonstrate a working integer-subset OCaml interpreter on COR24. Phase 0: lexer, parser, AST, evaluator, print_int primitive. Target demo: let x = 41 + 1 in print_int x outputs 42.

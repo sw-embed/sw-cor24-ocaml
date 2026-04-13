@@ -1,0 +1,1 @@
+Initial spike complete. Working OCaml subset interpreter on COR24: lexer, parser, tree-walk evaluator with closures, let rec, print_int. Factorial demo outputs 120. 17 regression tests. 14 dogfooding issues filed and resolved across p24p and pcode repos.

@@ -1,1 +1,1 @@
-Demonstrate a working integer-subset OCaml interpreter on COR24. Phase 0: lexer, parser, AST, evaluator, print_int primitive. Target demo: let x = 41 + 1 in print_int x outputs 42.
+Extend the OCaml interpreter with embedded I/O primitives and language features needed for real COR24 programs. Add board primitives (set_led, switch), UART I/O (putc, getc), multi-expression sequencing with semicolons, multi-argument functions, and negative literals. Target demo: interactive LED toggle driven by switch input.
