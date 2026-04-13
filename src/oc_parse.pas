@@ -1,8 +1,9 @@
 { oc_parse.pas -- Recursive descent parser for OCaml subset
 
-  Grammar (Phase 0):
+  Grammar (Phase 1):
+    seq     ::= expr (';' expr)*
     expr    ::= let_expr | if_expr | fun_expr | logic_expr
-    let_expr ::= 'let' ['rec'] IDENT '=' expr 'in' expr
+    let_expr ::= 'let' ['rec'] IDENT '=' expr 'in' seq
     if_expr  ::= 'if' expr 'then' expr 'else' expr
     fun_expr ::= 'fun' IDENT '->' expr
     logic    ::= compare (('&&' | '||') compare)*

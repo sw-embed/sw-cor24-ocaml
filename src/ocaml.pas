@@ -47,6 +47,7 @@ var
   name_pool: array[0..2047] of char; name_pool_len: integer;
   parse_error: boolean; eval_error: boolean;
   print_int_noff: integer; print_int_nlen: integer;
+  wildcard_noff: integer; wildcard_nlen: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -176,6 +177,7 @@ begin new(n); n^.kind := EK_APP; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen
 
 { === Parser === }
 function parse_expr: PExpr; forward;
+function parse_seq: PExpr; forward;
 function is_atom_start: boolean;
 begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) end;
 function parse_atom: PExpr;
@@ -187,7 +189,7 @@ begin parse_atom := nil;
   if tok=TK_IDENT then begin parse_atom := mk_var_node; lex_next; exit end;
   if tok=TK_LPAREN then begin lex_next;
     if tok=TK_RPAREN then begin parse_atom := mk_int(0); lex_next; exit end;
-    e := parse_expr; if tok=TK_RPAREN then lex_next else parse_error := true;
+    e := parse_seq; if tok=TK_RPAREN then lex_next else parse_error := true;
     parse_atom := e; exit end;
   parse_error := true end;
 function parse_app: PExpr;
@@ -237,7 +239,7 @@ begin parse_expr := nil;
     if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
     val_e := parse_expr;
     if tok=TK_IN then lex_next else begin parse_error := true; exit end;
-    body_e := parse_expr; e := mk_let_node(val_e, body_e);
+    body_e := parse_seq; e := mk_let_node(val_e, body_e);
     e^.noff := my_noff; e^.nlen := my_nlen;
     if is_rec then e^.ival := 1; parse_expr := e; exit end;
   if tok=TK_IF then begin lex_next; val_e := parse_expr;
@@ -249,9 +251,25 @@ begin parse_expr := nil;
     if tok=TK_IDENT then begin my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
     else begin parse_error := true; exit end;
     if tok=TK_ARROW then lex_next else begin parse_error := true; exit end;
-    body_e := parse_expr; e := mk_fun_node(body_e);
+    body_e := parse_seq; e := mk_fun_node(body_e);
     e^.noff := my_noff; e^.nlen := my_nlen; parse_expr := e; exit end;
   parse_expr := parse_logic end;
+
+function parse_seq: PExpr;
+var e, r, seq: PExpr;
+begin
+  e := parse_expr;
+  while (tok = TK_SEMI) and not parse_error do
+  begin
+    lex_next;
+    r := parse_expr;
+    seq := mk_let_node(e, r);
+    seq^.noff := wildcard_noff;
+    seq^.nlen := wildcard_nlen;
+    e := seq
+  end;
+  parse_seq := e
+end;
 
 { === Evaluator === }
 function names_equal(o1, l1, o2, l2: integer): boolean;
@@ -294,6 +312,10 @@ begin print_int_noff := name_pool_len;
   name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
   print_int_nlen := 9 end;
+procedure intern_wildcard;
+begin wildcard_noff := name_pool_len;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  wildcard_nlen := 1 end;
 function eval_expr(e: PExpr; env: PEnv): PVal; forward;
 function eval_expr(e: PExpr; env: PEnv): PVal;
 var lv, rv, fv, av: PVal; l, r, x, bd: PExpr; ne, ce: PEnv; a, b, res: integer;
@@ -364,11 +386,12 @@ begin eval_expr := nil;
 begin
   name_pool_len := 0;
   intern_print_int;
+  intern_wildcard;
   lex_init;
   parse_error := false;
   eval_error := false;
   lex_next;
-  ast := parse_expr;
+  ast := parse_seq;
   if parse_error then writeln('PARSE ERROR')
   else begin
     result := eval_expr(ast, nil);

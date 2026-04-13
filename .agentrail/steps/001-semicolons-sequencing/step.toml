@@ -1,6 +1,6 @@
 number = 1
 slug = "semicolons-sequencing"
-status = "pending"
+status = "in-progress"
 description = """
 Add semicolon sequencing to the OCaml interpreter.
 
