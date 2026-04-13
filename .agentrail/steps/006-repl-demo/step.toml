@@ -1,0 +1,12 @@
+number = 6
+slug = "repl-demo"
+status = "pending"
+description = """
+Create an interactive OCaml REPL.
+
+Write an OCaml program that loops:
+1. Prin..."""
+role = "production"
+context_files = []
+created_at = "2026-04-12T20:24:31"
+commits = []

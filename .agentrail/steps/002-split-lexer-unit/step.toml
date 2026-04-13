@@ -1,0 +1,11 @@
+number = 2
+slug = "split-lexer-unit"
+status = "pending"
+description = """
+Split the lexer out of ocaml.pas into a separate compilation unit.
+
+Create sr..."""
+role = "production"
+context_files = []
+created_at = "2026-04-12T20:24:31"
+commits = []
