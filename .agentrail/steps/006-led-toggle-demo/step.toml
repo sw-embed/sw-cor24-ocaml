@@ -1,6 +1,6 @@
 number = 6
 slug = "led-toggle-demo"
-status = "in-progress"
+status = "completed"
 description = """
 Create the target demo: interactive LED toggle driven by switch input.
 
@@ -8,4 +8,5 @@ Write..."""
 role = "production"
 context_files = []
 created_at = "2026-04-12T18:05:35"
-commits = []
+completed_at = "2026-04-12T19:59:01"
+commits = ["ec5a5592633807bd5f9c46ed7f56400de43a65e6"]

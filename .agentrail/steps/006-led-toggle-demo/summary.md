@@ -1,0 +1,1 @@
+Added LED toggle and board I/O demos. Sequential LED blink works. Infinite loop demo conceptually correct but PVM stack depth limits prevent sustained recursion. 26 reg-rs tests passing. Phase1-embedded-io saga complete.

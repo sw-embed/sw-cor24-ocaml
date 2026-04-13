@@ -4,7 +4,7 @@
   "description": "Pascal compiler targeting P-code VM (p24p), plus runtime library",
   "repo": "https://github.com/sw-embed/sw-cor24-pascal.git",
   "repo_path_local": "../sw-cor24-pascal",
-  "commit": "81e1821ee6c421cbb72eda94b547e40ca8570a18",
+  "commit": "7786744fb0dfb46f106762d995252820e457019c",
   "tag": "TBD",
   "build_cmd": "TBD",
   "binary_src": "TBD",
@@ -23,5 +23,5 @@
   },
   "recorded_at": "TBD",
   "recorded_by": "TBD",
-  "notes": "Pascal compiler is p24p.s (COR24 assembly, runs on emulator). Not a host binary. Artifacts are .s and .spc files copied directly. Commit pin is pre-issues-8-12; artifacts include fixes from working tree (issues #8 MAX_SYMBOLS, #9 arrays-in-records, #10 pointer-return-types, #11 MAX_PROCS, #12 INPUT_BUF_SIZE). Update commit pin when upstream commits these fixes."
+  "notes": "Pascal compiler is p24p.s (COR24 assembly, runs on emulator). Not a host binary. Artifacts are .s and .spc files copied directly. Includes all fixes: #4-#13."
 }
