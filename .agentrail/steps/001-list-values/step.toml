@@ -1,6 +1,6 @@
 number = 1
 slug = "list-values"
-status = "pending"
+status = "blocked"
 description = """
 Add list value type and runtime support.
 
