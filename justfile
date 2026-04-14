@@ -57,6 +57,22 @@ repl-session file:
 demo-repl:
     @./scripts/run-ocaml.sh tests/repl_session.ml
 
+# Launch interactive REPL (terminal mode -- type Ctrl-D or close to exit)
+repl:
+    @echo "OCaml REPL on COR24 -- type expressions, Ctrl-C to exit"
+    @echo "Try: 42"
+    @echo "     let x = 41 + 1 in x"
+    @echo "     let f = fun x -> x * 2 in f 21"
+    @echo "     let rec fact = fun n -> if n = 0 then 1 else n * fact (n - 1) in fact 5"
+    @echo "     print_int 99"
+    @echo "     led_on (); print_int 1"
+    @echo "----------------------------------------"
+    @CODE_PTR=$(cat build/code_ptr_addr.txt) && \
+      cor24-run --load-binary build/pvm.bin@0 \
+        --load-binary build/ocaml.p24m@0x010000 \
+        --patch "0x$${CODE_PTR}=0x010000" \
+        --entry 0 --speed 0 -n 2000000000 --terminal
+
 # Smoke test: verify toolchain works
 smoke:
     @echo "--- Hello World ---"
