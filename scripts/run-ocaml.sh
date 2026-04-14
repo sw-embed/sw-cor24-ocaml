@@ -30,8 +30,8 @@ ML_INPUT=$(cat "$ML")
   --load-binary "$BUILD_DIR/ocaml.p24m@0x010000" \
   --patch "0x${CODE_PTR}=0x010000" \
   --entry 0 -u "${ML_INPUT}"$'\x04' --speed 0 -n "$MAX_INSTRS" 2>&1 | \
-  awk '/^PVM OK$/ { found=1; next } /^HALT$/ { found=0; next } found { print }' | \
-  grep -v '^\[' | grep -v '^Assembled' | grep -v '^Running' | \
-  grep -v '^Executed' | grep -v '^Loaded' | \
-  grep -v 'LEDs:' | grep -v 'UART TX' | \
-  grep -v '^$'
+  awk '
+    /^UART output:/ { in_out = 1; sub(/^UART output: /, ""); }
+    /^Executed / { in_out = 0 }
+    in_out { print }
+  ' | sed '1s/^PVM OK$//; /^$/d; /^HALT$/d'
