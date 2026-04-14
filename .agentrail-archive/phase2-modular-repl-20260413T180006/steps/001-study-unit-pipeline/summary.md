@@ -1,0 +1,1 @@
+Researched p24p unit compilation. Key finding: compiler only supports ONE user unit -- cannot split into separate lexer/parser/eval units. Can switch to unit-mode build pipeline (uses units + p24-load) for better memory layout. Documented findings in docs/unit-compilation-notes.md.

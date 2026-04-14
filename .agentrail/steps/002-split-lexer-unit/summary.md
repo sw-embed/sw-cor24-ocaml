@@ -1,1 +1,0 @@
-BLOCKED: Modularization motivation (memory pressure) resolved by upstream SRAM heap fix. Pivoting to REPL work which provides better demo value and faster feedback loop for future feature development.

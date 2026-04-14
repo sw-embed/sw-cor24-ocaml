@@ -1,9 +1,0 @@
-number = 1
-slug = "study-unit-pipeline"
-status = "completed"
-description = "Study how p24p unit compilation works and how the Pascal project's multi-unit..."
-role = "production"
-context_files = []
-created_at = "2026-04-12T20:24:31"
-completed_at = "2026-04-12T20:29:16"
-commits = ["94f978e70e6a3b55f752c8e815399867e37c2260"]

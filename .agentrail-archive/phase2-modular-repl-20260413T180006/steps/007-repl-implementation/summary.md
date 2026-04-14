@@ -1,0 +1,1 @@
+Implemented interactive REPL. lex_init reads one line at a time. Main loop prompts with '> ', reads, parses, evaluates, prints result, loops until EOF. Tested with 5-expression session including factorial. 27 reg-rs tests passing.
