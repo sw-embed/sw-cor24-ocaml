@@ -109,10 +109,7 @@ begin classify_ident := TK_IDENT;
     if (tok_id[0]='f') and (tok_id[1]='a') and (tok_id[2]='l') and (tok_id[3]='s') and (tok_id[4]='e') then classify_ident := TK_FALSE
   end end;
 procedure crlf;
-begin
-  putc_ch := chr(13); write(putc_ch);
-  putc_ch := chr(10); write(putc_ch)
-end;
+begin write(chr(13)); write(chr(10)) end;
 
 procedure lex_init;
 { Read one line from UART (until newline or EOT). Echoes each char
@@ -127,9 +124,7 @@ begin src_len := 0; pos := 0; tok := TK_EOF; tok_int := 0; tok_id_len := 0;
     if (ch = chr(8)) or (ch = chr(127)) then begin
       if src_len > 0 then begin
         src_len := src_len - 1;
-        putc_ch := chr(8); write(putc_ch);
-        write(' ');
-        write(putc_ch)
+        write(chr(8)); write(' '); write(chr(8))
       end
     end
     else begin
@@ -491,7 +486,7 @@ begin eval_expr := nil;
           eval_expr := mk_val_bool(ReadSwitch); exit end;
         if names_equal(fv^.noff, fv^.nlen, putc_noff, putc_nlen) then begin
           if av^.ival = 10 then crlf
-          else begin putc_ch := chr(av^.ival); write(putc_ch) end;
+          else write(chr(av^.ival));
           eval_expr := mk_val_unit; exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
