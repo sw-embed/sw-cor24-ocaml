@@ -108,17 +108,35 @@ begin classify_ident := TK_IDENT;
   end else if tok_id_len = 5 then begin
     if (tok_id[0]='f') and (tok_id[1]='a') and (tok_id[2]='l') and (tok_id[3]='s') and (tok_id[4]='e') then classify_ident := TK_FALSE
   end end;
+procedure crlf;
+begin
+  putc_ch := chr(13); write(putc_ch);
+  putc_ch := chr(10); write(putc_ch)
+end;
+
 procedure lex_init;
 { Read one line from UART (until newline or EOT). Echoes each char
-  for interactive terminal use. Resets lexer state. }
+  for interactive terminal use. Resets lexer state.
+
+  Handles backspace (chr(8) or chr(127)) by removing the last char
+  and visually backing up the cursor. }
 begin src_len := 0; pos := 0; tok := TK_EOF; tok_int := 0; tok_id_len := 0;
   while not eof do begin
     read(ch);
     if ch = chr(4) then exit;
-    write(ch);  { echo the character so user sees what they type }
-    if ch = chr(13) then begin write(chr(10)); exit end;  { CR -> LF and stop }
-    if ch = chr(10) then exit;
-    if src_len < SRC_MAX then begin src[src_len] := ch; src_len := src_len + 1 end
+    if (ch = chr(8)) or (ch = chr(127)) then begin
+      if src_len > 0 then begin
+        src_len := src_len - 1;
+        putc_ch := chr(8); write(putc_ch);
+        write(' ');
+        write(putc_ch)
+      end
+    end
+    else begin
+      write(ch);  { echo the character }
+      if (ch = chr(13)) or (ch = chr(10)) then begin crlf; exit end;
+      if src_len < SRC_MAX then begin src[src_len] := ch; src_len := src_len + 1 end
+    end
   end
 end;
 procedure lex_next;
@@ -461,7 +479,7 @@ begin eval_expr := nil;
     if fv^.vk = VK_CLOSURE then begin
       if fv^.body = nil then begin
         if names_equal(fv^.noff, fv^.nlen, print_int_noff, print_int_nlen) then begin
-          writeln(av^.ival); eval_expr := mk_val_unit; exit end;
+          write(av^.ival); crlf; eval_expr := mk_val_unit; exit end;
         if names_equal(fv^.noff, fv^.nlen, set_led_noff, set_led_nlen) then begin
           if av^.ival <> 0 then LedOn else LedOff;
           eval_expr := mk_val_unit; exit end;
@@ -472,7 +490,9 @@ begin eval_expr := nil;
         if names_equal(fv^.noff, fv^.nlen, switch_noff, switch_nlen) then begin
           eval_expr := mk_val_bool(ReadSwitch); exit end;
         if names_equal(fv^.noff, fv^.nlen, putc_noff, putc_nlen) then begin
-          putc_ch := chr(av^.ival); write(putc_ch); eval_expr := mk_val_unit; exit end;
+          if av^.ival = 10 then crlf
+          else begin putc_ch := chr(av^.ival); write(putc_ch) end;
+          eval_expr := mk_val_unit; exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
       ne := env_extend(ce, fv^.noff, fv^.nlen, av);
@@ -496,15 +516,16 @@ begin
       eval_error := false;
       lex_next;
       ast := parse_seq;
-      if parse_error then writeln('PARSE ERROR')
+      if parse_error then begin write('PARSE ERROR'); crlf end
       else begin
         result := eval_expr(ast, nil);
-        if eval_error then writeln('EVAL ERROR')
-        else if result^.vk = VK_INT then writeln(result^.ival)
+        if eval_error then begin write('EVAL ERROR'); crlf end
+        else if result^.vk = VK_INT then begin write(result^.ival); crlf end
         else if result^.vk = VK_BOOL then begin
-          if result^.ival = 1 then writeln('true') else writeln('false')
+          if result^.ival = 1 then write('true') else write('false');
+          crlf
         end
-        else if result^.vk = VK_UNIT then writeln
+        else if result^.vk = VK_UNIT then crlf
       end
     end
   end

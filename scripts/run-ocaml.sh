@@ -34,4 +34,4 @@ ML_INPUT=$(cat "$ML")
     /^UART output:/ { in_out = 1; sub(/^UART output: /, ""); }
     /^Executed / { in_out = 0 }
     in_out { print }
-  ' | sed '1s/^PVM OK$//; /^$/d; /^HALT$/d'
+  ' | tr -d '\r' | sed '1s/^PVM OK$//; /^$/d; /^HALT$/d'
