@@ -1,2 +1,2 @@
-> -1
+> let x = -1 in print_int x; print_int (-42)-1
 -42

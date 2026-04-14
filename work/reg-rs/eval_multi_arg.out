@@ -1,1 +1,1 @@
-> 42
+> let add = fun x y -> x + y in print_int (add 20 22)42

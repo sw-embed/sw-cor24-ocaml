@@ -109,11 +109,14 @@ begin classify_ident := TK_IDENT;
     if (tok_id[0]='f') and (tok_id[1]='a') and (tok_id[2]='l') and (tok_id[3]='s') and (tok_id[4]='e') then classify_ident := TK_FALSE
   end end;
 procedure lex_init;
-{ Read one line from UART (until newline or EOT). Resets lexer state. }
+{ Read one line from UART (until newline or EOT). Echoes each char
+  for interactive terminal use. Resets lexer state. }
 begin src_len := 0; pos := 0; tok := TK_EOF; tok_int := 0; tok_id_len := 0;
   while not eof do begin
     read(ch);
     if ch = chr(4) then exit;
+    write(ch);  { echo the character so user sees what they type }
+    if ch = chr(13) then begin write(chr(10)); exit end;  { CR -> LF and stop }
     if ch = chr(10) then exit;
     if src_len < SRC_MAX then begin src[src_len] := ch; src_len := src_len + 1 end
   end

@@ -1,2 +1,2 @@
-> 42
+> let x = 42 in print_int x; print_int (x + 1)42
 43

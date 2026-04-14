@@ -1,1 +1,1 @@
-> 1
+> led_on (); print_int 11

@@ -1,5 +1,9 @@
 > 42
-> 2
-> 42
-> 120
-> 99
+42
+> let x = 1 + 1 in x
+2
+> let f = fun x -> x * 2 in f 21
+42
+> let rec fact = fun n -> if n = 0 then 1 else n * fact (n - 1) in fact 5
+120
+> print_int 9999
