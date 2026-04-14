@@ -109,9 +109,15 @@ begin classify_ident := TK_IDENT;
     if (tok_id[0]='f') and (tok_id[1]='a') and (tok_id[2]='l') and (tok_id[3]='s') and (tok_id[4]='e') then classify_ident := TK_FALSE
   end end;
 procedure lex_init;
+{ Read one line from UART (until newline or EOT). Resets lexer state. }
 begin src_len := 0; pos := 0; tok := TK_EOF; tok_int := 0; tok_id_len := 0;
-  while not eof do begin read(ch);
-    if ch <> chr(4) then if src_len < SRC_MAX then begin src[src_len] := ch; src_len := src_len + 1 end end end;
+  while not eof do begin
+    read(ch);
+    if ch = chr(4) then exit;
+    if ch = chr(10) then exit;
+    if src_len < SRC_MAX then begin src[src_len] := ch; src_len := src_len + 1 end
+  end
+end;
 procedure lex_next;
 var c: char;
 begin skip_ws_and_comments;
@@ -471,23 +477,32 @@ begin eval_expr := nil;
     eval_error := true; exit end;
   eval_error := true end;
 
-{ === Main === }
+{ === Main: REPL loop === }
 begin
   name_pool_len := 0;
   intern_print_int;
   intern_board;
   intern_wildcard;
-  lex_init;
-  parse_error := false;
-  eval_error := false;
-  lex_next;
-  ast := parse_seq;
-  if parse_error then writeln('PARSE ERROR')
-  else begin
-    result := eval_expr(ast, nil);
-    if eval_error then writeln('EVAL ERROR')
-    else if result^.vk = VK_INT then writeln(result^.ival)
-    else if result^.vk = VK_BOOL then begin if result^.ival = 1 then writeln('true') else writeln('false') end
-    else if result^.vk = VK_UNIT then begin end
+  while not eof do begin
+    { Print prompt: "> " }
+    putc_ch := '>'; write(putc_ch);
+    putc_ch := ' '; write(putc_ch);
+    lex_init;
+    if src_len > 0 then begin
+      parse_error := false;
+      eval_error := false;
+      lex_next;
+      ast := parse_seq;
+      if parse_error then writeln('PARSE ERROR')
+      else begin
+        result := eval_expr(ast, nil);
+        if eval_error then writeln('EVAL ERROR')
+        else if result^.vk = VK_INT then writeln(result^.ival)
+        else if result^.vk = VK_BOOL then begin
+          if result^.ival = 1 then writeln('true') else writeln('false')
+        end
+        else if result^.vk = VK_UNIT then writeln
+      end
+    end
   end
 end.

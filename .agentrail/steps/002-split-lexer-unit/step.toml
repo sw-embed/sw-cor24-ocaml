@@ -1,6 +1,6 @@
 number = 2
 slug = "split-lexer-unit"
-status = "pending"
+status = "blocked"
 description = """
 Split the lexer out of ocaml.pas into a separate compilation unit.
 

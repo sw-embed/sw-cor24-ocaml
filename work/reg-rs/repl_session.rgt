@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/repl_session.ml"
+exit_code = 0

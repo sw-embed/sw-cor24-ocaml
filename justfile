@@ -49,6 +49,14 @@ demo-fact:
 demo-led:
     @./scripts/run-ocaml.sh tests/demo_led_blink.ml
 
+# Run a REPL session from a file (one expression per line)
+repl-session file:
+    @./scripts/run-ocaml.sh {{file}}
+
+# Run the REPL session demo (factorial, multi-arg, print_int)
+demo-repl:
+    @./scripts/run-ocaml.sh tests/repl_session.ml
+
 # Smoke test: verify toolchain works
 smoke:
     @echo "--- Hello World ---"
