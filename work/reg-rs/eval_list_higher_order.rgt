@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_list_higher_order.ml"
+exit_code = 0

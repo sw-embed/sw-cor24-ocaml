@@ -93,6 +93,10 @@ var
   list_hd_noff: integer; list_hd_nlen: integer;
   list_tl_noff: integer; list_tl_nlen: integer;
   list_isempty_noff: integer; list_isempty_nlen: integer;
+  list_map_noff: integer; list_map_nlen: integer;
+  list_filter_noff: integer; list_filter_nlen: integer;
+  list_fold_noff: integer; list_fold_nlen: integer;
+  list_iter_noff: integer; list_iter_nlen: integer;
   fst_noff: integer; fst_nlen: integer;
   snd_noff: integer; snd_nlen: integer;
   none_noff: integer; none_nlen: integer;
@@ -973,6 +977,29 @@ begin
   name_pool[name_pool_len] := 'y'; name_pool_len := name_pool_len+1;
   list_isempty_nlen := 13
 end;
+procedure pool_put(c: char);
+begin if name_pool_len < NAME_POOL_MAX then begin
+  name_pool[name_pool_len] := c; name_pool_len := name_pool_len+1 end end;
+procedure intern_list_hof;
+begin
+  list_map_noff := name_pool_len;
+  pool_put('L'); pool_put('i'); pool_put('s'); pool_put('t'); pool_put('.');
+  pool_put('m'); pool_put('a'); pool_put('p');
+  list_map_nlen := 8;
+  list_filter_noff := name_pool_len;
+  pool_put('L'); pool_put('i'); pool_put('s'); pool_put('t'); pool_put('.');
+  pool_put('f'); pool_put('i'); pool_put('l'); pool_put('t'); pool_put('e'); pool_put('r');
+  list_filter_nlen := 11;
+  list_fold_noff := name_pool_len;
+  pool_put('L'); pool_put('i'); pool_put('s'); pool_put('t'); pool_put('.');
+  pool_put('f'); pool_put('o'); pool_put('l'); pool_put('d'); pool_put('_');
+  pool_put('l'); pool_put('e'); pool_put('f'); pool_put('t');
+  list_fold_nlen := 14;
+  list_iter_noff := name_pool_len;
+  pool_put('L'); pool_put('i'); pool_put('s'); pool_put('t'); pool_put('.');
+  pool_put('i'); pool_put('t'); pool_put('e'); pool_put('r');
+  list_iter_nlen := 9
+end;
 procedure intern_pair_ops;
 begin
   fst_noff := name_pool_len;
@@ -1185,6 +1212,75 @@ begin
 end;
 
 function eval_expr(e: PExpr; env: PEnv): PVal; forward;
+
+{ Apply a user-defined closure value to an argument. Builtin closures
+  (body = nil) are not supported as HOF callbacks — wrap in 'fun x -> f x'. }
+function apply_val(fv, av: PVal): PVal;
+var ne: PEnv;
+begin apply_val := nil;
+  if fv = nil then begin eval_error := true; exit end;
+  if fv^.vk <> VK_CLOSURE then begin eval_error := true; exit end;
+  if fv^.body = nil then begin eval_error := true; exit end;
+  ne := env_extend(fv^.cenv, fv^.noff, fv^.nlen, av);
+  apply_val := eval_expr(fv^.body, ne) end;
+
+function list_map_impl(f, l: PVal): PVal;
+var head, tail, cell, v: PVal;
+begin head := nil; tail := nil;
+  while (l <> nil) and (l^.vk = VK_CONS) do begin
+    v := apply_val(f, l^.head);
+    if eval_error then begin list_map_impl := nil; exit end;
+    cell := mk_val_cons(v, mk_val_nil);
+    if head = nil then head := cell else tail^.tail := cell;
+    tail := cell;
+    l := l^.tail end;
+  if head = nil then list_map_impl := mk_val_nil else list_map_impl := head end;
+
+function list_filter_impl(f, l: PVal): PVal;
+var head, tail, cell, v: PVal;
+begin head := nil; tail := nil;
+  while (l <> nil) and (l^.vk = VK_CONS) do begin
+    v := apply_val(f, l^.head);
+    if eval_error then begin list_filter_impl := nil; exit end;
+    if (v^.vk = VK_BOOL) and (v^.ival <> 0) then begin
+      cell := mk_val_cons(l^.head, mk_val_nil);
+      if head = nil then head := cell else tail^.tail := cell;
+      tail := cell end;
+    l := l^.tail end;
+  if head = nil then list_filter_impl := mk_val_nil else list_filter_impl := head end;
+
+function list_fold_impl(f, acc, l: PVal): PVal;
+var partial: PVal;
+begin
+  while (l <> nil) and (l^.vk = VK_CONS) do begin
+    partial := apply_val(f, acc);
+    if eval_error then begin list_fold_impl := nil; exit end;
+    acc := apply_val(partial, l^.head);
+    if eval_error then begin list_fold_impl := nil; exit end;
+    l := l^.tail end;
+  list_fold_impl := acc end;
+
+function list_iter_impl(f, l: PVal): PVal;
+var v: PVal;
+begin
+  while (l <> nil) and (l^.vk = VK_CONS) do begin
+    v := apply_val(f, l^.head);
+    if eval_error then begin list_iter_impl := nil; exit end;
+    l := l^.tail end;
+  list_iter_impl := mk_val_unit end;
+
+{ Partial-application builder for list HOFs.
+  Stashes (f) or (f, acc) inside a fresh nil-body closure that reuses the
+  HOF's name; the ival field is the partial-app stage (0=bare, 1=has fn,
+  2=has fn+acc for fold). Stages 1/2 are detected in EK_APP dispatch. }
+function mk_partial(noff, nlen, stage: integer; f, acc: PVal): PVal;
+var p: PVal;
+begin new(p); p^.vk := VK_CLOSURE; p^.ival := stage;
+  p^.noff := noff; p^.nlen := nlen;
+  p^.body := nil; p^.cenv := nil;
+  p^.head := f; p^.tail := acc;
+  mk_partial := p end;
+
 function eval_expr(e: PExpr; env: PEnv): PVal;
 var lv, rv, fv, av: PVal; l, r, x, bd, arm: PExpr; ne, ce: PEnv; a, b, res: integer;
 begin eval_expr := nil;
@@ -1225,6 +1321,14 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(tl_noff, tl_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, list_isempty_noff, list_isempty_nlen) then begin
       eval_expr := mk_val_closure(isempty_noff, isempty_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_map_noff, list_map_nlen) then begin
+      eval_expr := mk_val_closure(list_map_noff, list_map_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_filter_noff, list_filter_nlen) then begin
+      eval_expr := mk_val_closure(list_filter_noff, list_filter_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_fold_noff, list_fold_nlen) then begin
+      eval_expr := mk_val_closure(list_fold_noff, list_fold_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_iter_noff, list_iter_nlen) then begin
+      eval_expr := mk_val_closure(list_iter_noff, list_iter_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, fst_noff, fst_nlen) then begin
       eval_expr := mk_val_closure(fst_noff, fst_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, snd_noff, snd_nlen) then begin
@@ -1376,6 +1480,24 @@ begin eval_expr := nil;
         if names_equal(fv^.noff, fv^.nlen, string_length_noff, string_length_nlen) then begin
           if av^.vk <> VK_STRING then begin eval_error := true; exit end;
           eval_expr := mk_val_int(av^.nlen); exit end;
+        if names_equal(fv^.noff, fv^.nlen, list_map_noff, list_map_nlen) then begin
+          if fv^.ival = 0 then begin
+            eval_expr := mk_partial(list_map_noff, list_map_nlen, 1, av, nil); exit end;
+          eval_expr := list_map_impl(fv^.head, av); exit end;
+        if names_equal(fv^.noff, fv^.nlen, list_filter_noff, list_filter_nlen) then begin
+          if fv^.ival = 0 then begin
+            eval_expr := mk_partial(list_filter_noff, list_filter_nlen, 1, av, nil); exit end;
+          eval_expr := list_filter_impl(fv^.head, av); exit end;
+        if names_equal(fv^.noff, fv^.nlen, list_iter_noff, list_iter_nlen) then begin
+          if fv^.ival = 0 then begin
+            eval_expr := mk_partial(list_iter_noff, list_iter_nlen, 1, av, nil); exit end;
+          eval_expr := list_iter_impl(fv^.head, av); exit end;
+        if names_equal(fv^.noff, fv^.nlen, list_fold_noff, list_fold_nlen) then begin
+          if fv^.ival = 0 then begin
+            eval_expr := mk_partial(list_fold_noff, list_fold_nlen, 1, av, nil); exit end;
+          if fv^.ival = 1 then begin
+            eval_expr := mk_partial(list_fold_noff, list_fold_nlen, 2, fv^.head, av); exit end;
+          eval_expr := list_fold_impl(fv^.head, fv^.tail, av); exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
       ne := env_extend(ce, fv^.noff, fv^.nlen, av);
@@ -1452,6 +1574,7 @@ begin
   intern_nil;
   intern_list_ops;
   intern_list_module;
+  intern_list_hof;
   intern_pair_ops;
   intern_option;
   intern_fn_arg;

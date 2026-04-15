@@ -1,6 +1,6 @@
 number = 1
 slug = "list-higher-order-builtins"
-status = "pending"
+status = "in-progress"
 description = """
 Add List.map, List.filter, List.fold_left, List.iter as builtins.
 
