@@ -1,6 +1,6 @@
 number = 2
 slug = "let-destructuring"
-status = "pending"
+status = "in-progress"
 description = """
 Extend 'let' to accept a pattern on the left-hand side.
 

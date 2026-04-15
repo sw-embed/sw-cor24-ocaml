@@ -1,0 +1,1 @@
+function keyword as sugar for fun+match. 35 tests passing.

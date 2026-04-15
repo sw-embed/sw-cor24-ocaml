@@ -90,6 +90,7 @@ var
   none_noff: integer; none_nlen: integer;
   some_noff: integer; some_nlen: integer;
   fn_arg_noff: integer; fn_arg_nlen: integer;
+  let_tmp_noff: integer; let_tmp_nlen: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -438,18 +439,42 @@ begin
 end;
 
 function parse_expr: PExpr;
-var e, val_e, body_e: PExpr; is_rec: boolean; my_noff, my_nlen: integer;
+var e, val_e, body_e, match_e: PExpr; is_rec: boolean; my_noff, my_nlen: integer;
+    let_pat: PPat;
 begin parse_expr := nil;
   if tok=TK_LET then begin lex_next; is_rec := false;
     if tok=TK_REC then begin is_rec := true; lex_next end;
-    if (tok=TK_IDENT) or ((tok >= TK_LET) and (tok <= TK_MOD)) then begin my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
-    else begin parse_error := true; exit end;
+    if is_rec then begin
+      { let rec: require plain identifier, no patterns }
+      if (tok=TK_IDENT) or ((tok >= TK_LET) and (tok <= TK_MOD)) then begin my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
+      else begin parse_error := true; exit end;
+      if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
+      val_e := parse_expr;
+      if tok=TK_IN then lex_next else begin parse_error := true; exit end;
+      body_e := parse_seq; e := mk_let_node(val_e, body_e);
+      e^.noff := my_noff; e^.nlen := my_nlen;
+      e^.ival := 1; parse_expr := e; exit
+    end;
+    { Non-rec: parse a pattern. If pattern is PK_VAR use fast path;
+      else desugar 'let PAT = e in body' to
+      'let #let = e in match #let with PAT -> body'. }
+    let_pat := parse_pattern;
+    if parse_error then exit;
     if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
     val_e := parse_expr;
     if tok=TK_IN then lex_next else begin parse_error := true; exit end;
-    body_e := parse_seq; e := mk_let_node(val_e, body_e);
-    e^.noff := my_noff; e^.nlen := my_nlen;
-    if is_rec then e^.ival := 1; parse_expr := e; exit end;
+    body_e := parse_seq;
+    if let_pat^.pk = PK_VAR then begin
+      e := mk_let_node(val_e, body_e);
+      e^.noff := let_pat^.noff; e^.nlen := let_pat^.nlen
+    end else begin
+      { Desugar: let #let = val_e in match #let with pat -> body_e }
+      match_e := mk_match(mk_var_ref(let_tmp_noff, let_tmp_nlen), mk_arm(let_pat, body_e));
+      e := mk_let_node(val_e, match_e);
+      e^.noff := let_tmp_noff; e^.nlen := let_tmp_nlen
+    end;
+    parse_expr := e; exit
+  end;
   if tok=TK_IF then begin lex_next; val_e := parse_expr;
     if tok=TK_THEN then lex_next else begin parse_error := true; exit end;
     body_e := parse_expr;
@@ -849,7 +874,14 @@ begin
   name_pool[name_pool_len] := 'a'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'r'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'g'; name_pool_len := name_pool_len+1;
-  fn_arg_nlen := 4
+  fn_arg_nlen := 4;
+  { Synthetic temp for let-destructuring. }
+  let_tmp_noff := name_pool_len;
+  name_pool[name_pool_len] := '#'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  let_tmp_nlen := 4
 end;
 procedure intern_board;
 begin
