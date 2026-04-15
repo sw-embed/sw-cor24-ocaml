@@ -502,24 +502,33 @@ begin e := parse_compare;
   while ((tok=TK_ANDAND) or (tok=TK_OROR)) and not parse_error do
   begin o := tok; lex_next; r := parse_compare; e := mk_binop(o, e, r) end;
   parse_logic := e end;
+function is_pat_start: boolean;
+begin is_pat_start := (tok=TK_IDENT) or (tok=TK_INT) or (tok=TK_MINUS)
+  or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) end;
 function parse_let_fun_params: PExpr; forward;
 function parse_let_fun_params: PExpr;
-{ For 'let f x y z = body' sugar. End marker is '='.
-  Generates fun x -> fun y -> fun z -> body. }
-var e, body_e: PExpr; my_noff, my_nlen: integer;
+{ For 'let f P1 P2 .. = body' sugar. End marker is '='. Each parameter
+  is a pattern; plain-var patterns use the direct 'fun x -> body' form;
+  non-var patterns desugar to 'fun #arg -> match #arg with P -> body'. }
+var e, body_e, match_e: PExpr; pat: PPat;
 begin
   parse_let_fun_params := nil;
-  if tok=TK_IDENT then begin
-    my_noff := pool_intern; my_nlen := tok_id_len; lex_next
-  end else begin parse_error := true; exit end;
+  pat := parse_pattern_atom;
+  if parse_error then exit;
   if tok=TK_EQ then begin
     lex_next; body_e := parse_expr
   end else begin
     body_e := parse_let_fun_params
   end;
   if parse_error then exit;
-  e := mk_fun_node(body_e);
-  e^.noff := my_noff; e^.nlen := my_nlen;
+  if pat^.pk = PK_VAR then begin
+    e := mk_fun_node(body_e);
+    e^.noff := pat^.noff; e^.nlen := pat^.nlen
+  end else begin
+    match_e := mk_match(mk_var_ref(fn_arg_noff, fn_arg_nlen), mk_arm(pat, body_e));
+    e := mk_fun_node(match_e);
+    e^.noff := fn_arg_noff; e^.nlen := fn_arg_nlen
+  end;
   parse_let_fun_params := e
 end;
 function parse_fun_params: PExpr;
@@ -565,8 +574,8 @@ begin parse_expr := nil;
       { let rec: require plain identifier, no patterns }
       if (tok=TK_IDENT) or ((tok >= TK_LET) and (tok <= TK_MOD)) then begin my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
       else begin parse_error := true; exit end;
-      { Function-form let rec: 'let rec f x y = body' sugar. }
-      if tok = TK_IDENT then begin
+      { Function-form let rec: 'let rec f P1 P2 = body' sugar. }
+      if is_pat_start then begin
         val_e := parse_let_fun_params;
         if parse_error then exit;
         if tok=TK_IN then lex_next else begin parse_error := true; exit end;
@@ -589,8 +598,8 @@ begin parse_expr := nil;
       'let f = fun x y -> body'. }
     let_pat := parse_pattern;
     if parse_error then exit;
-    { Function-form: if pattern was a plain ident and next is another ident }
-    if (let_pat^.pk = PK_VAR) and (tok = TK_IDENT) then begin
+    { Function-form: if pattern was a plain ident and next starts a pattern param }
+    if (let_pat^.pk = PK_VAR) and is_pat_start then begin
       val_e := parse_let_fun_params;
       if parse_error then exit;
       if tok=TK_IN then lex_next else begin parse_error := true; exit end;
@@ -706,6 +715,9 @@ begin
   end;
   if tok = TK_LPAREN then begin
     lex_next;
+    if tok = TK_RPAREN then begin
+      { unit pattern () -- unit is represented as int 0 }
+      parse_pattern_atom := mk_pat_int(0); lex_next; exit end;
     p := parse_pattern;
     if tok = TK_COMMA then begin
       lex_next;

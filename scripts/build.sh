@@ -36,7 +36,7 @@ echo "Building OCaml interpreter for COR24 (unit mode)..."
 
 # Step 1: Compile Pascal to .spc (unit mode)
 echo "  [1/5] Compiling Pascal -> .spc (p24p, unit mode)..."
-SPC_OUTPUT=$("$COR24_RUN" --run "$P24P_S" -u "$(cat "$SRC")"$'\x04' --speed 0 -n "$MAX_INSTRS" 2>&1 | \
+SPC_OUTPUT=$("$COR24_RUN" --run "$P24P_S" -u "$(cat "$SRC")"$'\x04' --speed 0 -t 120 -n "$MAX_INSTRS" 2>&1 | \
   grep -v '^\[UART' | sed 's/^UART output: //')
 
 if ! echo "$SPC_OUTPUT" | grep -q "; OK"; then

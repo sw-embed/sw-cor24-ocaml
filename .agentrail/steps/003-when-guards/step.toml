@@ -1,10 +1,11 @@
 number = 3
 slug = "when-guards"
-status = "pending"
+status = "completed"
 description = """
 Add 'when' guards to match arms: 'match x with n when n < 0 -> -n | n -> n'.
 ..."""
 role = "legacy"
 context_files = []
 created_at = "2026-04-15T13:45:52"
-commits = []
+completed_at = "2026-04-15T15:50:28"
+commits = ["23f82205b1edf99dd1a8308de02288fe6c61e9a3"]

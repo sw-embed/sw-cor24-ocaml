@@ -1,0 +1,1 @@
+Added when-guards to match arms. New TK_WHEN token; parse_match/parse_function_expr accept optional guard after pattern (stored in PExpr.extra); evaluator skips arm when guard is non-true. tests/eval_when_guards.ml registered with reg-rs; all 28 eval + 3 demo regressions still pass. src/ocaml.pas now 75KB (under 131KB limit).
