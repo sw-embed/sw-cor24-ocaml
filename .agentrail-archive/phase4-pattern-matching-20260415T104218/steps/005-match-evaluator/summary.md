@@ -1,0 +1,1 @@
+Pattern matching works. try_match handles all pattern kinds; EK_MATCH walks arms and dispatches. Verified with map via let rec + match. 33 tests passing.

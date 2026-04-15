@@ -1,0 +1,1 @@
+Add pattern matching to the OCaml interpreter (PRD Phase 3). Target: 'match e with p1 -> e1 | p2 -> e2 | ...' with patterns for integers, booleans, wildcards, variable bindings, lists ([] and h::t), pairs (a, b), and option (None/Some x). This unlocks idiomatic OCaml like 'let rec map f = function [] -> [] | h::t -> f h :: map f t' once combined with the existing list support.

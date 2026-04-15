@@ -1,0 +1,1 @@
+Strings implemented. Literals, escapes (\n \t \" \\), ^ concat, print_endline, String.length. Pretty-printed with double quotes. 37 tests passing.

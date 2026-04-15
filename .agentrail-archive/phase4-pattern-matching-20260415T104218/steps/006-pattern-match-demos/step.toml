@@ -1,0 +1,12 @@
+number = 6
+slug = "pattern-match-demos"
+status = "completed"
+description = """
+Write the canonical pattern-matching demo programs as OCaml source files.
+
+Cr..."""
+role = "production"
+context_files = []
+created_at = "2026-04-14T21:11:22"
+completed_at = "2026-04-15T10:40:30"
+commits = ["4314dd29094b6e7f86712a348da0f4e00dbb8a80"]

@@ -1,0 +1,1 @@
+10-demo pattern matching showcase. sum/length/map/filter all written in idiomatic OCaml. safe_div returning option. Pair destructuring. 34 tests. Saga phase4-pattern-matching complete.

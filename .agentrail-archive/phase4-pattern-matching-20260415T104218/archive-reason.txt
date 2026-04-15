@@ -1,0 +1,1 @@
+Phase 3 pattern matching complete. try_match for all pattern forms, match/with syntax, option type with None/Some constructors. Canonical OCaml demos working: map via match, filter, safe_div with option, pair destructuring. 34 regression tests passing.

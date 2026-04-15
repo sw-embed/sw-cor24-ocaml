@@ -1,0 +1,94 @@
+
+
+
+
+what are very short OCaml demo lines?
+
+You’re looking for very short OCaml demo lines—minimal, idiomatic snippets that illustrate core language features (functional style, pattern matching, recursion, immutability, etc.), ideally in one-liners or near one-liners.
+
+Below is a curated set, grouped by concept, with progressive coverage from trivial to “interesting in one line.”
+
+🧪 1. Absolute Basics (Hello, values, expressions)
+print_endline "Hello, World!"
+42
+1 + 2 * 3
+"OCaml" ^ " rocks"
+🔒 2. Immutability & Bindings
+let x = 10
+let x = 10 in x * x
+let pi = 3.14159
+🔁 3. Functions (Minimal)
+let f x = x + 1
+let square x = x * x
+let add x y = x + y
+(fun x -> x * 2) 5
+🔄 4. Recursion (Core OCaml Identity)
+let rec fact n = if n = 0 then 1 else n * fact (n - 1)
+let rec fib n = if n < 2 then n else fib (n-1) + fib (n-2)
+🎯 5. Pattern Matching (Key Feature)
+match 3 with 1 -> "one" | 2 -> "two" | _ -> "many"
+let f = function 0 -> "zero" | _ -> "nonzero"
+let abs x = match x with n when n < 0 -> -n | n -> n
+📦 6. Lists (Very OCaml-ish)
+[1;2;3]
+List.map (fun x -> x * 2) [1;2;3]
+List.filter (fun x -> x mod 2 = 0) [1;2;3;4]
+List.fold_left (+) 0 [1;2;3;4]
+🧩 7. Tuples & Destructuring
+let (a, b) = (1, 2)
+let swap (x, y) = (y, x)
+🧠 8. Algebraic Data Types (Tiny but powerful)
+type color = Red | Green | Blue
+let to_string = function Red -> "R" | Green -> "G" | Blue -> "B"
+⚙️ 9. Option Type (Very idiomatic OCaml)
+Some 42
+let safe_div x y = if y = 0 then None else Some (x / y)
+match Some 3 with Some x -> x | None -> 0
+🔥 10. “Impressive in One Line” Demos
+These are the ones that tend to wow people:
+
+List.init 10 (fun i -> i * i)
+List.rev (List.map string_of_int [1;2;3])
+let compose f g x = f (g x)
+let (|>) x f = f x
+[1;2;3] |> List.map (fun x -> x * 2) |> List.fold_left (+) 0
+🧪 11. Tiny IO + Computation Combo
+print_int (List.fold_left (+) 0 [1;2;3])
+print_endline (string_of_int (List.length [1;2;3]))
+⚖️ Observations (Why these matter)
+Strengths shown
+Extremely concise functional definitions
+
+Pattern matching as a first-class control structure
+
+Strong typing without verbosity
+
+Higher-order functions everywhere
+
+Limitations of “one-liners”
+Readability drops quickly (especially pipelines)
+
+Debugging is harder without structure
+
+Recursion often needs multi-line formatting for clarity
+
+🧭 If you want next
+Given your compiler/VM work, the most interesting next step would be:
+
+“OCaml one-liners that map directly to VM concepts”
+
+closures
+
+stack frames
+
+tail-call optimization
+
+or
+
+“OCaml snippets rewritten as p-code / COR24 execution steps”
+
+That would tie directly into your visualization tool.
+
+
+
+

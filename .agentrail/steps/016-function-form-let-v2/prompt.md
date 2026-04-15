@@ -1,0 +1,1 @@
+let f x y z = body as sugar for let f = fun x y z -> body. Highest-value step -- unlocks 8+ canonical demos.
