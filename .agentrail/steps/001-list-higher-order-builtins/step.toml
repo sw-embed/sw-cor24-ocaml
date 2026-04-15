@@ -1,6 +1,6 @@
 number = 1
 slug = "list-higher-order-builtins"
-status = "in-progress"
+status = "completed"
 description = """
 Add List.map, List.filter, List.fold_left, List.iter as builtins.
 
@@ -8,4 +8,5 @@ Scope: the..."""
 role = "production"
 context_files = []
 created_at = "2026-04-15T12:56:36"
-commits = []
+completed_at = "2026-04-15T13:40:28"
+commits = ["b83cc045870005e60d136a84304e225f3218a5c2"]
