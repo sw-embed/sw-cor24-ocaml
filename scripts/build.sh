@@ -55,7 +55,7 @@ echo "  [2/5] ok"
 
 # Step 3: Link units with p24-load
 echo "  [3/5] Linking units (p24-load)..."
-"$P24LOAD" "$BUILD_DIR/ocaml.p24" "$RT_P24" -o "$BUILD_DIR/ocaml.p24m" 2>/dev/null
+"$P24LOAD" --load-addr 0x010000 "$BUILD_DIR/ocaml.p24" "$RT_P24" -o "$BUILD_DIR/ocaml.p24m" 2>/dev/null
 echo "  [3/5] ok"
 
 # Step 4: Pre-assemble PVM

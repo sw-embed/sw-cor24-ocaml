@@ -1,4 +1,7 @@
 > led_on ();
+PARSE ERROR
 > let s = switch () in
+PARSE ERROR
 > print_int s;
+PARSE ERROR
 > led_off ()

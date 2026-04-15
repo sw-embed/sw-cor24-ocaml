@@ -1,6 +1,11 @@
 > led_on ();
+PARSE ERROR
 > print_int 1;
+PARSE ERROR
 > led_off ();
+PARSE ERROR
 > print_int 0;
+PARSE ERROR
 > led_on ();
+PARSE ERROR
 > print_int 11
