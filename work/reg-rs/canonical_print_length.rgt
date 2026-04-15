@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/canonical_print_length.ml"
+exit_code = 0

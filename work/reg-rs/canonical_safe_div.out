@@ -1,0 +1,1 @@
+> let safe_div x y = if y = 0 then None else Some (x / y) in safe_div 10 2Some 5

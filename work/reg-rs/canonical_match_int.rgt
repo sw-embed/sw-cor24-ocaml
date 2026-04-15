@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/canonical_match_int.ml"
+exit_code = 0

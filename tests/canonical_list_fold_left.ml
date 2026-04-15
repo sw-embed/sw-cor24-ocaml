@@ -1,0 +1,1 @@
+List.fold_left (fun a b -> a + b) 0 [1;2;3;4]

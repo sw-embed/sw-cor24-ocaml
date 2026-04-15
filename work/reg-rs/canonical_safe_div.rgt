@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/canonical_safe_div.ml"
+exit_code = 0

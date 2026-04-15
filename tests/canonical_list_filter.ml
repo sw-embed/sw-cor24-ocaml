@@ -1,0 +1,1 @@
+List.filter (fun x -> x mod 2 = 0) [1;2;3;4]

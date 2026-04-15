@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/canonical_list_fold_left.ml"
+exit_code = 0
