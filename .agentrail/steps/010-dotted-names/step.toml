@@ -1,0 +1,11 @@
+number = 10
+slug = "dotted-names"
+status = "pending"
+description = """
+Add qualified identifier parsing (List.length etc).
+
+Lexer: add TK_DOT for '...."""
+role = "production"
+context_files = []
+created_at = "2026-04-14T18:50:51"
+commits = []
