@@ -1,6 +1,6 @@
 number = 10
 slug = "dotted-names"
-status = "pending"
+status = "in-progress"
 description = """
 Add qualified identifier parsing (List.length etc).
 

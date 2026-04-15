@@ -14,6 +14,7 @@ const
   TK_ANDAND=40; TK_OROR=41; TK_ARROW=42;
   TK_LPAREN=50; TK_RPAREN=51; TK_SEMI=52;
   TK_LBRACKET=53; TK_RBRACKET=54; TK_COLONCOLON=55;
+  TK_DOT=56;
   TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
@@ -162,6 +163,7 @@ begin skip_ws_and_comments;
   if c = ')' then begin tok := TK_RPAREN; pos := pos+1; exit end;
   if c = ';' then begin tok := TK_SEMI; pos := pos+1; exit end;
   if c = '[' then begin tok := TK_LBRACKET; pos := pos+1; exit end;
+  if c = '.' then begin tok := TK_DOT; pos := pos+1; exit end;
   if c = ']' then begin tok := TK_RBRACKET; pos := pos+1; exit end;
   if c = ':' then begin
     pos := pos+1;
@@ -235,12 +237,41 @@ function parse_fun_params: PExpr; forward;
 function is_atom_start: boolean;
 begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) end;
 function parse_atom: PExpr;
-var e: PExpr;
+var e: PExpr; i: integer;
 begin parse_atom := nil;
   if tok=TK_INT then begin parse_atom := mk_int(tok_int); lex_next; exit end;
   if tok=TK_TRUE then begin parse_atom := mk_bool(1); lex_next; exit end;
   if tok=TK_FALSE then begin parse_atom := mk_bool(0); lex_next; exit end;
-  if tok=TK_IDENT then begin parse_atom := mk_var_node; lex_next; exit end;
+  if tok=TK_IDENT then begin
+    { Create EK_VAR for the current ident first (tok_id still has it). }
+    e := mk_var_node;
+    lex_next;
+    { If followed by one or more '.ident', extend the name in the
+      already-created node by appending '.' + ident to the name pool.
+      Works because pool_intern writes contiguously and no other
+      interns happen between mk_var_node and here. }
+    while tok = TK_DOT do begin
+      lex_next;
+      if tok <> TK_IDENT then begin parse_error := true; exit end;
+      if name_pool_len < NAME_POOL_MAX then begin
+        name_pool[name_pool_len] := '.';
+        name_pool_len := name_pool_len + 1;
+        e^.nlen := e^.nlen + 1
+      end;
+      i := 0;
+      while i < tok_id_len do begin
+        if name_pool_len < NAME_POOL_MAX then begin
+          name_pool[name_pool_len] := tok_id[i];
+          name_pool_len := name_pool_len + 1;
+          e^.nlen := e^.nlen + 1
+        end;
+        i := i + 1
+      end;
+      lex_next
+    end;
+    parse_atom := e;
+    exit
+  end;
   if tok=TK_LPAREN then begin lex_next;
     if tok=TK_RPAREN then begin parse_atom := mk_int(0); lex_next; exit end;
     e := parse_seq; if tok=TK_RPAREN then lex_next else parse_error := true;
