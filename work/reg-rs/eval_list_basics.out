@@ -1,15 +1,15 @@
 > []
 []
 > [1]
-cons
+[1]
 > [1; 2; 3]
-cons
+[1; 2; 3]
 > 1 :: nil
-cons
+[1]
 > is_empty nil
 true
 > is_empty [1]
 false
 > hd [42]
 42
-> tl [1; 2; 3]cons
+> tl [1; 2; 3][2; 3]

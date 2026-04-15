@@ -610,6 +610,37 @@ begin eval_expr := nil;
     eval_error := true; exit end;
   eval_error := true end;
 
+{ === Value pretty-printer === }
+
+procedure print_value(v: PVal); forward;
+
+procedure print_value(v: PVal);
+var cur: PVal;
+begin
+  if v = nil then begin write('<nil>'); exit end;
+  if v^.vk = VK_INT then begin write(v^.ival); exit end;
+  if v^.vk = VK_BOOL then begin
+    if v^.ival = 1 then write('true') else write('false');
+    exit
+  end;
+  if v^.vk = VK_UNIT then begin write('()'); exit end;
+  if v^.vk = VK_NIL then begin write('[]'); exit end;
+  if v^.vk = VK_CONS then begin
+    write('[');
+    print_value(v^.head);
+    cur := v^.tail;
+    while (cur <> nil) and (cur^.vk = VK_CONS) do begin
+      write('; ');
+      print_value(cur^.head);
+      cur := cur^.tail
+    end;
+    write(']');
+    exit
+  end;
+  if v^.vk = VK_CLOSURE then begin write('<fun>'); exit end;
+  write('<?>')
+end;
+
 { === Main: REPL loop === }
 begin
   name_pool_len := 0;
@@ -638,8 +669,7 @@ begin
           crlf
         end
         else if result^.vk = VK_UNIT then crlf
-        else if result^.vk = VK_NIL then begin write('[]'); crlf end
-        else if result^.vk = VK_CONS then begin write('cons'); crlf end
+        else begin print_value(result); crlf end
       end
     end
   end

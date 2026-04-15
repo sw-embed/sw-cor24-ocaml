@@ -1,6 +1,6 @@
 number = 9
 slug = "list-printing-v2"
-status = "pending"
+status = "in-progress"
 description = """
 Implement recursive list pretty-printing for VK_CONS values.
 
