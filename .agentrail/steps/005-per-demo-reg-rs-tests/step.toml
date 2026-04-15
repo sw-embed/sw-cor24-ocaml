@@ -1,8 +1,9 @@
 number = 5
 slug = "per-demo-reg-rs-tests"
-status = "pending"
+status = "completed"
 description = "Add per-demo reg-rs tests for canonical OCaml one-liners from docs/possible-d..."
 role = "production"
 context_files = []
 created_at = "2026-04-15T16:00:18"
-commits = []
+completed_at = "2026-04-15T16:36:51"
+commits = ["b6fb36dbb214f2e451bdbaf369f00f2596ce7f24"]
