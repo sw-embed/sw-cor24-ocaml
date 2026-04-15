@@ -1,6 +1,6 @@
 number = 4
 slug = "function-form-let-pattern-args"
-status = "in-progress"
+status = "completed"
 description = """
 Add pattern arguments to function-form let: 'let swap (x, y) = (y, x)'.
 
@@ -8,4 +8,5 @@ Curr..."""
 role = "legacy"
 context_files = []
 created_at = "2026-04-15T15:50:28"
-commits = []
+completed_at = "2026-04-15T15:58:50"
+commits = ["72ef14a08302bb87fa825beb53ce52c67f183ab3"]

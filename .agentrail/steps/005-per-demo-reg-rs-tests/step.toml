@@ -1,0 +1,8 @@
+number = 5
+slug = "per-demo-reg-rs-tests"
+status = "pending"
+description = "Add per-demo reg-rs tests for canonical OCaml one-liners from docs/possible-d..."
+role = "production"
+context_files = []
+created_at = "2026-04-15T16:00:18"
+commits = []
