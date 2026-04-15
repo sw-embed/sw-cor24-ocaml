@@ -293,6 +293,9 @@ begin new(p); p^.pk := PK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub
 function parse_expr: PExpr; forward;
 function parse_seq: PExpr; forward;
 function parse_list_elements: PExpr; forward;
+function parse_pattern: PPat; forward;
+function parse_pattern_atom: PPat; forward;
+function parse_pattern_list: PPat; forward;
 function parse_fun_params: PExpr; forward;
 function is_atom_start: boolean;
 begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) end;
@@ -474,6 +477,96 @@ begin
     parse_list_elements := mk_binop(OP_CONS, e, rest)
   end else
     parse_list_elements := mk_binop(OP_CONS, e, mk_nil_expr)
+end;
+
+{ === Pattern parser === }
+
+function parse_pattern_atom: PPat;
+var p, sub: PPat; off: integer;
+begin
+  parse_pattern_atom := nil;
+  if tok = TK_INT then begin
+    parse_pattern_atom := mk_pat_int(tok_int); lex_next; exit end;
+  if tok = TK_MINUS then begin
+    lex_next;
+    if tok <> TK_INT then begin parse_error := true; exit end;
+    parse_pattern_atom := mk_pat_int(0 - tok_int); lex_next; exit end;
+  if tok = TK_TRUE then begin
+    parse_pattern_atom := mk_pat_bool(1); lex_next; exit end;
+  if tok = TK_FALSE then begin
+    parse_pattern_atom := mk_pat_bool(0); lex_next; exit end;
+  if tok = TK_IDENT then begin
+    { _ wildcard }
+    if (tok_id_len = 1) and (tok_id[0] = '_') then begin
+      parse_pattern_atom := mk_pat_wildcard; lex_next; exit end;
+    { None }
+    if (tok_id_len = 4) and (tok_id[0] = 'N') and (tok_id[1] = 'o')
+       and (tok_id[2] = 'n') and (tok_id[3] = 'e') then begin
+      parse_pattern_atom := mk_pat_none; lex_next; exit end;
+    { Some pat }
+    if (tok_id_len = 4) and (tok_id[0] = 'S') and (tok_id[1] = 'o')
+       and (tok_id[2] = 'm') and (tok_id[3] = 'e') then begin
+      lex_next;
+      sub := parse_pattern_atom;
+      parse_pattern_atom := mk_pat_some(sub);
+      exit
+    end;
+    { regular variable binding }
+    off := pool_intern;
+    parse_pattern_atom := mk_pat_var(off, tok_id_len);
+    lex_next;
+    exit
+  end;
+  if tok = TK_LBRACKET then begin
+    lex_next;
+    if tok = TK_RBRACKET then begin
+      parse_pattern_atom := mk_pat_nil; lex_next; exit end;
+    p := parse_pattern_list;
+    if tok = TK_RBRACKET then lex_next else parse_error := true;
+    parse_pattern_atom := p;
+    exit
+  end;
+  if tok = TK_LPAREN then begin
+    lex_next;
+    p := parse_pattern;
+    if tok = TK_COMMA then begin
+      lex_next;
+      sub := parse_pattern;
+      p := mk_pat_pair(p, sub)
+    end;
+    if tok = TK_RPAREN then lex_next else parse_error := true;
+    parse_pattern_atom := p;
+    exit
+  end;
+  parse_error := true
+end;
+
+function parse_pattern_list: PPat;
+{ Parse p1; p2; ... ; pn (inside [..]) as cons chain ending in nil }
+var p, rest: PPat;
+begin
+  parse_pattern_list := nil;
+  p := parse_pattern;
+  if parse_error then exit;
+  if tok = TK_SEMI then begin
+    lex_next;
+    rest := parse_pattern_list;
+    parse_pattern_list := mk_pat_cons(p, rest)
+  end else
+    parse_pattern_list := mk_pat_cons(p, mk_pat_nil)
+end;
+
+function parse_pattern: PPat;
+{ Right-associative :: operator }
+var p, rest: PPat;
+begin
+  p := parse_pattern_atom;
+  if (tok = TK_COLONCOLON) and not parse_error then begin
+    lex_next;
+    rest := parse_pattern;
+    parse_pattern := mk_pat_cons(p, rest)
+  end else
+    parse_pattern := p
 end;
 
 { === Evaluator === }

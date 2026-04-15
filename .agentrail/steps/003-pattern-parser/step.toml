@@ -1,6 +1,6 @@
 number = 3
 slug = "pattern-parser"
-status = "pending"
+status = "in-progress"
 description = """
 Parse patterns.
 
