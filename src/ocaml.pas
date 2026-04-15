@@ -14,7 +14,7 @@ const
   TK_ANDAND=40; TK_OROR=41; TK_ARROW=42;
   TK_LPAREN=50; TK_RPAREN=51; TK_SEMI=52;
   TK_LBRACKET=53; TK_RBRACKET=54; TK_COLONCOLON=55;
-  TK_DOT=56;
+  TK_DOT=56; TK_COMMA=57;
   TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
@@ -23,10 +23,10 @@ const
   OP_ADD=30; OP_SUB=31; OP_MUL=32; OP_DIV=33; OP_MOD=20;
   OP_EQ=34; OP_NEQ=35; OP_LT=36; OP_GT=37;
   OP_LE=38; OP_GE=39; OP_AND=40; OP_OR=41; OP_NOT=19;
-  OP_CONS=55;
+  OP_CONS=55; OP_PAIR=56;
   NAME_POOL_MAX=2048;
   VK_INT=1; VK_BOOL=2; VK_CLOSURE=3; VK_UNIT=4;
-  VK_NIL=5; VK_CONS=6;
+  VK_NIL=5; VK_CONS=6; VK_PAIR=7;
 
 type
   PExpr = ^Expr;
@@ -72,6 +72,8 @@ var
   list_hd_noff: integer; list_hd_nlen: integer;
   list_tl_noff: integer; list_tl_nlen: integer;
   list_isempty_noff: integer; list_isempty_nlen: integer;
+  fst_noff: integer; fst_nlen: integer;
+  snd_noff: integer; snd_nlen: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -169,6 +171,7 @@ begin skip_ws_and_comments;
   if c = ';' then begin tok := TK_SEMI; pos := pos+1; exit end;
   if c = '[' then begin tok := TK_LBRACKET; pos := pos+1; exit end;
   if c = '.' then begin tok := TK_DOT; pos := pos+1; exit end;
+  if c = ',' then begin tok := TK_COMMA; pos := pos+1; exit end;
   if c = ']' then begin tok := TK_RBRACKET; pos := pos+1; exit end;
   if c = ':' then begin
     pos := pos+1;
@@ -279,7 +282,14 @@ begin parse_atom := nil;
   end;
   if tok=TK_LPAREN then begin lex_next;
     if tok=TK_RPAREN then begin parse_atom := mk_int(0); lex_next; exit end;
-    e := parse_seq; if tok=TK_RPAREN then lex_next else parse_error := true;
+    e := parse_seq;
+    if tok=TK_COMMA then begin
+      lex_next;
+      e := mk_binop(OP_PAIR, e, parse_expr);
+      if tok=TK_RPAREN then lex_next else parse_error := true
+    end
+    else if tok=TK_RPAREN then lex_next
+    else parse_error := true;
     parse_atom := e; exit end;
   if tok=TK_LBRACKET then begin
     lex_next;
@@ -446,6 +456,9 @@ begin new(p); p^.vk := VK_NIL; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body
 function mk_val_cons(h, t: PVal): PVal;
 var p: PVal;
 begin new(p); p^.vk := VK_CONS; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := h; p^.tail := t; mk_val_cons := p end;
+function mk_val_pair(a, b: PVal): PVal;
+var p: PVal;
+begin new(p); p^.vk := VK_PAIR; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := a; p^.tail := b; mk_val_pair := p end;
 function mk_val_unit: PVal;
 var p: PVal;
 begin new(p); p^.vk := VK_UNIT; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_unit := p end;
@@ -556,6 +569,19 @@ begin
   name_pool[name_pool_len] := 'y'; name_pool_len := name_pool_len+1;
   list_isempty_nlen := 13
 end;
+procedure intern_pair_ops;
+begin
+  fst_noff := name_pool_len;
+  name_pool[name_pool_len] := 'f'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  fst_nlen := 3;
+  snd_noff := name_pool_len;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  snd_nlen := 3
+end;
 procedure intern_board;
 begin
   set_led_noff := name_pool_len;
@@ -660,6 +686,10 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(tl_noff, tl_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, list_isempty_noff, list_isempty_nlen) then begin
       eval_expr := mk_val_closure(isempty_noff, isempty_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, fst_noff, fst_nlen) then begin
+      eval_expr := mk_val_closure(fst_noff, fst_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, snd_noff, snd_nlen) then begin
+      eval_expr := mk_val_closure(snd_noff, snd_nlen, nil, nil); exit end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
@@ -667,6 +697,9 @@ begin eval_expr := nil;
     if eval_error then exit;
     if e^.op = OP_CONS then begin
       eval_expr := mk_val_cons(lv, rv); exit
+    end;
+    if e^.op = OP_PAIR then begin
+      eval_expr := mk_val_pair(lv, rv); exit
     end;
     a := lv^.ival; b := rv^.ival; res := 0;
     if e^.op=OP_ADD then res := a+b
@@ -741,6 +774,12 @@ begin eval_expr := nil;
         if names_equal(fv^.noff, fv^.nlen, list_rev_noff, list_rev_nlen) then begin
           if (av^.vk <> VK_NIL) and (av^.vk <> VK_CONS) then begin eval_error := true; exit end;
           eval_expr := list_rev_impl(av); exit end;
+        if names_equal(fv^.noff, fv^.nlen, fst_noff, fst_nlen) then begin
+          if av^.vk <> VK_PAIR then begin eval_error := true; exit end;
+          eval_expr := av^.head; exit end;
+        if names_equal(fv^.noff, fv^.nlen, snd_noff, snd_nlen) then begin
+          if av^.vk <> VK_PAIR then begin eval_error := true; exit end;
+          eval_expr := av^.tail; exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
       ne := env_extend(ce, fv^.noff, fv^.nlen, av);
@@ -775,6 +814,14 @@ begin
     write(']');
     exit
   end;
+  if v^.vk = VK_PAIR then begin
+    write('(');
+    print_value(v^.head);
+    write(', ');
+    print_value(v^.tail);
+    write(')');
+    exit
+  end;
   if v^.vk = VK_CLOSURE then begin write('<fun>'); exit end;
   write('<?>')
 end;
@@ -788,6 +835,7 @@ begin
   intern_nil;
   intern_list_ops;
   intern_list_module;
+  intern_pair_ops;
   while not eof do begin
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);

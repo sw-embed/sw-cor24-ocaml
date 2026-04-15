@@ -1,0 +1,9 @@
+number = 12
+slug = "list-module-done"
+status = "completed"
+description = "Mark list module builtins complete after #18 fix."
+role = "production"
+context_files = []
+created_at = "2026-04-14T20:40:32"
+completed_at = "2026-04-14T20:40:32"
+commits = ["c66421cce01bf5e9aa6c8f73d869ca073cf671c0"]
