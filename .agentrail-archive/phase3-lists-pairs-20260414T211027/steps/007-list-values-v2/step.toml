@@ -1,0 +1,9 @@
+number = 7
+slug = "list-values-v2"
+status = "completed"
+description = "Add list value type and runtime support. Re-attempt after sw-cor24-pascal#17 ..."
+role = "production"
+context_files = []
+created_at = "2026-04-14T17:59:10"
+completed_at = "2026-04-14T18:11:33"
+commits = ["80691dbdd147739558aecd639c2ccfe4e8451e12"]

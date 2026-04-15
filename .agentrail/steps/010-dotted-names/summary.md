@@ -1,1 +1,0 @@
-Added dotted identifier parsing. List.length etc. parse as single qualified names. 29 tests passing.

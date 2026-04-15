@@ -1,0 +1,1 @@
+Created 8-example showcase demo. All core language features verified in one session: recursion, higher-order functions, lists, pairs, qualified names. Updated README and added just demo-lists target. 32 tests passing. Saga phase3-lists-pairs complete.

@@ -1,0 +1,8 @@
+number = 1
+slug = "option-values"
+status = "pending"
+description = "Add option type values (None/Some) as a natural fit for pattern matching demo..."
+role = "production"
+context_files = []
+created_at = "2026-04-14T21:11:22"
+commits = []

@@ -1,0 +1,8 @@
+number = 2
+slug = "match-tokens-ast"
+status = "pending"
+description = "Add tokens and AST nodes for pattern matching -- structure only, no parsing/e..."
+role = "production"
+context_files = []
+created_at = "2026-04-14T21:11:22"
+commits = []

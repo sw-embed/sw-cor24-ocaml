@@ -1,0 +1,11 @@
+number = 11
+slug = "list-module-builtins"
+status = "blocked"
+description = """
+Implement List.length, List.rev, List.hd, List.tl, List.is_empty.
+
+Intern eac..."""
+role = "production"
+context_files = []
+created_at = "2026-04-14T18:50:51"
+commits = []

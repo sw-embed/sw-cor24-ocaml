@@ -1,0 +1,12 @@
+number = 9
+slug = "list-printing-v2"
+status = "completed"
+description = """
+Implement recursive list pretty-printing for VK_CONS values.
+
+Current: VK_CON..."""
+role = "production"
+context_files = []
+created_at = "2026-04-14T18:50:51"
+completed_at = "2026-04-14T18:54:54"
+commits = ["d71bb4a5c9698ce97c92518b5900adbb4f4d3986"]

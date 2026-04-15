@@ -1,1 +1,0 @@
-BLOCKED: Blocked on sw-cor24-pascal#17: if/else if chain on dereferenced record field misbehaves in large programs. VK_UNIT branch fires when vk=5 should match VK_NIL. Minimal reproducer works; bug is specific to large programs with many procedures/globals. Filed issue with complete reproduction steps.

@@ -1,0 +1,12 @@
+number = 6
+slug = "list-demos"
+status = "pending"
+description = """
+Write demo programs using lists and pairs.
+
+Examples:
+  let rec sum = fun l -..."""
+role = "production"
+context_files = []
+created_at = "2026-04-13T18:00:37"
+commits = []

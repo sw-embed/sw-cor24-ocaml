@@ -1,0 +1,1 @@
+List module built-ins working. length, rev, hd, tl, is_empty all verified. 30 tests.

@@ -1,0 +1,1 @@
+Phase 2 (lists + pairs) complete. Lists with [], ::, [1;2;3] syntax and pretty-printing. Pairs with (a,b), fst/snd. Qualified names List.xxx. 5 List module built-ins. 32 regression tests passing.

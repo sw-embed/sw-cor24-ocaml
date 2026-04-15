@@ -1,0 +1,12 @@
+number = 3
+slug = "pattern-parser"
+status = "pending"
+description = """
+Parse patterns.
+
+New function: parse_pattern : PPat
+- INT_LITERAL -> PK_INT w..."""
+role = "production"
+context_files = []
+created_at = "2026-04-14T21:11:22"
+commits = []

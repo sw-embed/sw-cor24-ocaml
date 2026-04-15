@@ -1,0 +1,1 @@
+Add lists and pairs to the OCaml interpreter (PRD Phase 2). Lists are heap-allocated cons cells (head + tail). Pairs are 2-tuples. Add list literals [1;2;3], cons operator ::, empty list [], pair construction (a, b), and helper built-ins: hd, tl, fst, snd, is_empty. Target: write list operations like sum, length, map naturally in OCaml.

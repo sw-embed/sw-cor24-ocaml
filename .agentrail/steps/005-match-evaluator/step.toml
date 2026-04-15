@@ -1,0 +1,11 @@
+number = 5
+slug = "match-evaluator"
+status = "pending"
+description = """
+Evaluate pattern matches.
+
+Main function: try_match(p: PPat; v: PVal; env: PE..."""
+role = "production"
+context_files = []
+created_at = "2026-04-14T21:11:22"
+commits = []

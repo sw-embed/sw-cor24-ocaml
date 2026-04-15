@@ -1,1 +1,0 @@
-Lists have syntax and built-ins. [], [1;2;3], ::, hd, tl, is_empty all work. 29 tests passing.
