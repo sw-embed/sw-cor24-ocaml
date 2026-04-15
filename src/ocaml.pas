@@ -15,7 +15,7 @@ const
   TK_LPAREN=50; TK_RPAREN=51; TK_SEMI=52;
   TK_LBRACKET=53; TK_RBRACKET=54; TK_COLONCOLON=55;
   TK_DOT=56; TK_COMMA=57;
-  TK_MATCH=21; TK_WITH=22; TK_PIPE=58;
+  TK_MATCH=21; TK_WITH=22; TK_FUNCTION=23; TK_PIPE=58;
   TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
@@ -89,6 +89,7 @@ var
   snd_noff: integer; snd_nlen: integer;
   none_noff: integer; none_nlen: integer;
   some_noff: integer; some_nlen: integer;
+  fn_arg_noff: integer; fn_arg_nlen: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -142,6 +143,9 @@ begin classify_ident := TK_IDENT;
   end else if tok_id_len = 5 then begin
     if (tok_id[0]='f') and (tok_id[1]='a') and (tok_id[2]='l') and (tok_id[3]='s') and (tok_id[4]='e') then classify_ident := TK_FALSE
     else if (tok_id[0]='m') and (tok_id[1]='a') and (tok_id[2]='t') and (tok_id[3]='c') and (tok_id[4]='h') then classify_ident := TK_MATCH
+  end else if tok_id_len = 8 then begin
+    if (tok_id[0]='f') and (tok_id[1]='u') and (tok_id[2]='n') and (tok_id[3]='c')
+      and (tok_id[4]='t') and (tok_id[5]='i') and (tok_id[6]='o') and (tok_id[7]='n') then classify_ident := TK_FUNCTION
   end end;
 procedure crlf;
 begin write(chr(13)); write(chr(10)) end;
@@ -261,6 +265,10 @@ function mk_arm(p: PPat; body: PExpr): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_MATCH_ARM; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := body; n^.right := nil; n^.extra := nil; n^.pat := p; mk_arm := n end;
+function mk_var_ref(off, len: integer): PExpr;
+var n: PExpr;
+begin new(n); n^.kind := EK_VAR; n^.ival := 0; n^.op := 0; n^.noff := off; n^.nlen := len;
+  n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_var_ref := n end;
 
 function mk_pat_wildcard: PPat;
 var p: PPat;
@@ -298,6 +306,7 @@ function parse_pattern: PPat; forward;
 function parse_pattern_atom: PPat; forward;
 function parse_pattern_list: PPat; forward;
 function parse_match: PExpr; forward;
+function parse_function_expr: PExpr; forward;
 function parse_fun_params: PExpr; forward;
 function is_atom_start: boolean;
 begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) end;
@@ -450,6 +459,8 @@ begin parse_expr := nil;
     parse_expr := parse_fun_params; exit end;
   if tok=TK_MATCH then begin
     parse_expr := parse_match; exit end;
+  if tok=TK_FUNCTION then begin
+    parse_expr := parse_function_expr; exit end;
   parse_expr := parse_logic end;
 
 function parse_seq: PExpr;
@@ -610,6 +621,44 @@ begin
     prev_arm := arm
   end;
   parse_match := mk_match(scrutinee, first_arm)
+end;
+
+function parse_function_expr: PExpr;
+{ 'function' [|]? pat -> body ('|' pat -> body)*
+  Sugar for 'fun #arg -> match #arg with ...' }
+var body, first_arm, arm, prev_arm, match_expr, fun_node: PExpr;
+    pat: PPat;
+begin
+  parse_function_expr := nil;
+  if tok <> TK_FUNCTION then begin parse_error := true; exit end;
+  lex_next;
+  if tok = TK_PIPE then lex_next;
+  pat := parse_pattern;
+  if parse_error then exit;
+  if tok <> TK_ARROW then begin parse_error := true; exit end;
+  lex_next;
+  body := parse_expr;
+  if parse_error then exit;
+  first_arm := mk_arm(pat, body);
+  prev_arm := first_arm;
+  while (tok = TK_PIPE) and not parse_error do begin
+    lex_next;
+    pat := parse_pattern;
+    if parse_error then exit;
+    if tok <> TK_ARROW then begin parse_error := true; exit end;
+    lex_next;
+    body := parse_expr;
+    if parse_error then exit;
+    arm := mk_arm(pat, body);
+    prev_arm^.right := arm;
+    prev_arm := arm
+  end;
+  { Build: fun #arg -> match #arg with arms }
+  match_expr := mk_match(mk_var_ref(fn_arg_noff, fn_arg_nlen), first_arm);
+  fun_node := mk_fun_node(match_expr);
+  fun_node^.noff := fn_arg_noff;
+  fun_node^.nlen := fn_arg_nlen;
+  parse_function_expr := fun_node
 end;
 
 { === Evaluator === }
@@ -790,6 +839,17 @@ begin
   name_pool[name_pool_len] := 'm'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
   some_nlen := 4
+end;
+procedure intern_fn_arg;
+begin
+  { Synthetic parameter name for 'function' -- unlikely to collide since
+    real user identifiers can't contain '#'. }
+  fn_arg_noff := name_pool_len;
+  name_pool[name_pool_len] := '#'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'a'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'r'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'g'; name_pool_len := name_pool_len+1;
+  fn_arg_nlen := 4
 end;
 procedure intern_board;
 begin
@@ -1139,6 +1199,7 @@ begin
   intern_list_module;
   intern_pair_ops;
   intern_option;
+  intern_fn_arg;
   while not eof do begin
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);

@@ -1,0 +1,13 @@
+> let f = function 0 -> 100 | 1 -> 101 | _ -> 999 in f 0
+100
+> let f = function 0 -> 100 | 1 -> 101 | _ -> 999 in f 1
+101
+> let f = function 0 -> 100 | 1 -> 101 | _ -> 999 in f 5
+999
+> let f = function [] -> 0 | h :: t -> h in f [42; 99]
+42
+> (function 0 -> 100 | _ -> 0) 0
+100
+> let classify = function Some n -> n | None -> 0 in classify (Some 42)
+42
+> let classify = function Some n -> n | None -> 0 in classify None0
