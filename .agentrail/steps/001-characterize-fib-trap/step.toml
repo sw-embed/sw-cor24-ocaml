@@ -1,0 +1,8 @@
+number = 1
+slug = "characterize-fib-trap"
+status = "pending"
+description = "Characterize the fib trap. No source code changes in this step — pure inves..."
+role = "production"
+context_files = []
+created_at = "2026-04-15T16:40:11"
+commits = []
