@@ -1,0 +1,11 @@
+> None
+None
+> Some 42
+Some 42
+> Some [1; 2; 3]
+Some [1; 2; 3]
+> Some (1, 2)
+Some (1, 2)
+> let x = Some 7 in x
+Some 7
+> Some (Some 3)Some Some 3

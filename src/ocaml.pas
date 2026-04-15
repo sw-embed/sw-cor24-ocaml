@@ -27,6 +27,7 @@ const
   NAME_POOL_MAX=2048;
   VK_INT=1; VK_BOOL=2; VK_CLOSURE=3; VK_UNIT=4;
   VK_NIL=5; VK_CONS=6; VK_PAIR=7;
+  VK_NONE=8; VK_SOME=9;
 
 type
   PExpr = ^Expr;
@@ -74,6 +75,8 @@ var
   list_isempty_noff: integer; list_isempty_nlen: integer;
   fst_noff: integer; fst_nlen: integer;
   snd_noff: integer; snd_nlen: integer;
+  none_noff: integer; none_nlen: integer;
+  some_noff: integer; some_nlen: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -459,6 +462,12 @@ begin new(p); p^.vk := VK_CONS; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.bod
 function mk_val_pair(a, b: PVal): PVal;
 var p: PVal;
 begin new(p); p^.vk := VK_PAIR; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := a; p^.tail := b; mk_val_pair := p end;
+function mk_val_none: PVal;
+var p: PVal;
+begin new(p); p^.vk := VK_NONE; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_none := p end;
+function mk_val_some(x: PVal): PVal;
+var p: PVal;
+begin new(p); p^.vk := VK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := x; p^.tail := nil; mk_val_some := p end;
 function mk_val_unit: PVal;
 var p: PVal;
 begin new(p); p^.vk := VK_UNIT; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_unit := p end;
@@ -582,6 +591,21 @@ begin
   name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
   snd_nlen := 3
 end;
+procedure intern_option;
+begin
+  none_noff := name_pool_len;
+  name_pool[name_pool_len] := 'N'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'o'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  none_nlen := 4;
+  some_noff := name_pool_len;
+  name_pool[name_pool_len] := 'S'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'o'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'm'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  some_nlen := 4
+end;
 procedure intern_board;
 begin
   set_led_noff := name_pool_len;
@@ -690,6 +714,10 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(fst_noff, fst_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, snd_noff, snd_nlen) then begin
       eval_expr := mk_val_closure(snd_noff, snd_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, none_noff, none_nlen) then begin
+      eval_expr := mk_val_none; exit end;
+    if names_equal(e^.noff, e^.nlen, some_noff, some_nlen) then begin
+      eval_expr := mk_val_closure(some_noff, some_nlen, nil, nil); exit end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
@@ -780,6 +808,8 @@ begin eval_expr := nil;
         if names_equal(fv^.noff, fv^.nlen, snd_noff, snd_nlen) then begin
           if av^.vk <> VK_PAIR then begin eval_error := true; exit end;
           eval_expr := av^.tail; exit end;
+        if names_equal(fv^.noff, fv^.nlen, some_noff, some_nlen) then begin
+          eval_expr := mk_val_some(av); exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
       ne := env_extend(ce, fv^.noff, fv^.nlen, av);
@@ -822,6 +852,12 @@ begin
     write(')');
     exit
   end;
+  if v^.vk = VK_NONE then begin write('None'); exit end;
+  if v^.vk = VK_SOME then begin
+    write('Some ');
+    print_value(v^.head);
+    exit
+  end;
   if v^.vk = VK_CLOSURE then begin write('<fun>'); exit end;
   write('<?>')
 end;
@@ -836,6 +872,7 @@ begin
   intern_list_ops;
   intern_list_module;
   intern_pair_ops;
+  intern_option;
   while not eof do begin
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);
