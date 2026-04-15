@@ -67,6 +67,7 @@ var
   pos: integer; ch: char;
   name_pool: array[0..2047] of char; name_pool_len: integer;
   parse_error: boolean; eval_error: boolean;
+  match_success: boolean;
   print_int_noff: integer; print_int_nlen: integer;
   set_led_noff: integer; set_led_nlen: integer;
   led_on_noff: integer; led_on_nlen: integer;
@@ -833,6 +834,70 @@ begin
   name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
   putc_nlen := 4
 end;
+function try_match(p: PPat; v: PVal; env: PEnv): PEnv; forward;
+function try_match(p: PPat; v: PVal; env: PEnv): PEnv;
+{ Attempts to match pattern p against value v, extending env.
+  Sets match_success := true on success, false on fail.
+  Returns extended env on success (or env unchanged if no bindings). }
+var e1: PEnv;
+begin
+  try_match := env;
+  match_success := true;
+  if p = nil then begin match_success := false; exit end;
+  if v = nil then begin match_success := false; exit end;
+
+  if p^.pk = PK_WILDCARD then exit;
+
+  if p^.pk = PK_VAR then begin
+    try_match := env_extend(env, p^.noff, p^.nlen, v);
+    exit
+  end;
+
+  if p^.pk = PK_INT then begin
+    if (v^.vk = VK_INT) and (v^.ival = p^.ival) then exit;
+    match_success := false; exit
+  end;
+
+  if p^.pk = PK_BOOL then begin
+    if (v^.vk = VK_BOOL) and (v^.ival = p^.ival) then exit;
+    match_success := false; exit
+  end;
+
+  if p^.pk = PK_NIL then begin
+    if v^.vk = VK_NIL then exit;
+    match_success := false; exit
+  end;
+
+  if p^.pk = PK_CONS then begin
+    if v^.vk <> VK_CONS then begin match_success := false; exit end;
+    e1 := try_match(p^.sub1, v^.head, env);
+    if not match_success then exit;
+    try_match := try_match(p^.sub2, v^.tail, e1);
+    exit
+  end;
+
+  if p^.pk = PK_PAIR then begin
+    if v^.vk <> VK_PAIR then begin match_success := false; exit end;
+    e1 := try_match(p^.sub1, v^.head, env);
+    if not match_success then exit;
+    try_match := try_match(p^.sub2, v^.tail, e1);
+    exit
+  end;
+
+  if p^.pk = PK_NONE then begin
+    if v^.vk = VK_NONE then exit;
+    match_success := false; exit
+  end;
+
+  if p^.pk = PK_SOME then begin
+    if v^.vk <> VK_SOME then begin match_success := false; exit end;
+    try_match := try_match(p^.sub1, v^.head, env);
+    exit
+  end;
+
+  match_success := false
+end;
+
 function list_length_impl(l: PVal): integer;
 var n: integer;
 begin
@@ -857,7 +922,7 @@ end;
 
 function eval_expr(e: PExpr; env: PEnv): PVal; forward;
 function eval_expr(e: PExpr; env: PEnv): PVal;
-var lv, rv, fv, av: PVal; l, r, x, bd: PExpr; ne, ce: PEnv; a, b, res: integer;
+var lv, rv, fv, av: PVal; l, r, x, bd, arm: PExpr; ne, ce: PEnv; a, b, res: integer;
 begin eval_expr := nil;
   if e = nil then begin eval_error := true; exit end;
   if e^.kind = EK_INT then begin eval_expr := mk_val_int(e^.ival); exit end;
@@ -950,6 +1015,23 @@ begin eval_expr := nil;
     r := e^.right; eval_expr := eval_expr(r, ne); exit end;
   if e^.kind = EK_FUN then begin
     eval_expr := mk_val_closure(e^.noff, e^.nlen, e^.left, env); exit end;
+  if e^.kind = EK_MATCH then begin
+    l := e^.left;
+    lv := eval_expr(l, env);
+    if eval_error then exit;
+    arm := e^.right;
+    while arm <> nil do begin
+      ne := try_match(arm^.pat, lv, env);
+      if match_success then begin
+        bd := arm^.left;
+        eval_expr := eval_expr(bd, ne);
+        exit
+      end;
+      arm := arm^.right
+    end;
+    eval_error := true; { no match }
+    exit
+  end;
   if e^.kind = EK_APP then begin
     l := e^.left; fv := eval_expr(l, env); if eval_error then exit;
     r := e^.right; av := eval_expr(r, env); if eval_error then exit;

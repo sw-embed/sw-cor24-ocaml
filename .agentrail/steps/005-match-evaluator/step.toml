@@ -1,6 +1,6 @@
 number = 5
 slug = "match-evaluator"
-status = "pending"
+status = "in-progress"
 description = """
 Evaluate pattern matches.
 
