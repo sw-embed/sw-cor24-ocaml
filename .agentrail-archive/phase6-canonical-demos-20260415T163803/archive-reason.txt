@@ -1,0 +1,1 @@
+All 5 planned steps complete: List higher-order builtins, string_of_int/int_of_string, when-guards, function-form let pattern args, per-demo reg-rs tests.
