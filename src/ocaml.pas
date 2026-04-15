@@ -21,6 +21,7 @@ const
   OP_LE=38; OP_GE=39; OP_AND=40; OP_OR=41; OP_NOT=19;
   NAME_POOL_MAX=2048;
   VK_INT=1; VK_BOOL=2; VK_CLOSURE=3; VK_UNIT=4;
+  VK_NIL=5; VK_CONS=6;
 
 type
   PExpr = ^Expr;
@@ -34,7 +35,8 @@ type
   Val = record
     vk: integer; ival: integer;
     noff: integer; nlen: integer;
-    body: PExpr; cenv: PEnv
+    body: PExpr; cenv: PEnv;
+    head: PVal; tail: PVal
   end;
   EnvEntry = record
     noff: integer; nlen: integer;
@@ -56,6 +58,7 @@ var
   putc_noff: integer; putc_nlen: integer;
   putc_ch: char;
   wildcard_noff: integer; wildcard_nlen: integer;
+  nil_noff: integer; nil_nlen: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -337,16 +340,22 @@ var e: PEnv;
 begin new(e); e^.noff := noff; e^.nlen := nlen; e^.val := v; e^.next := env; env_extend := e end;
 function mk_val_int(v: integer): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_INT; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; mk_val_int := p end;
+begin new(p); p^.vk := VK_INT; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_int := p end;
 function mk_val_bool(v: integer): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_BOOL; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; mk_val_bool := p end;
+begin new(p); p^.vk := VK_BOOL; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_bool := p end;
 function mk_val_closure(noff, nlen: integer; body: PExpr; env: PEnv): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_CLOSURE; p^.ival := 0; p^.noff := noff; p^.nlen := nlen; p^.body := body; p^.cenv := env; mk_val_closure := p end;
+begin new(p); p^.vk := VK_CLOSURE; p^.ival := 0; p^.noff := noff; p^.nlen := nlen; p^.body := body; p^.cenv := env; p^.head := nil; p^.tail := nil; mk_val_closure := p end;
+function mk_val_nil: PVal;
+var p: PVal;
+begin new(p); p^.vk := VK_NIL; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_nil := p end;
+function mk_val_cons(h, t: PVal): PVal;
+var p: PVal;
+begin new(p); p^.vk := VK_CONS; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := h; p^.tail := t; mk_val_cons := p end;
 function mk_val_unit: PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_UNIT; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; mk_val_unit := p end;
+begin new(p); p^.vk := VK_UNIT; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_unit := p end;
 procedure intern_print_int;
 begin print_int_noff := name_pool_len;
   name_pool[name_pool_len] := 'p'; name_pool_len := name_pool_len+1;
@@ -363,6 +372,12 @@ procedure intern_wildcard;
 begin wildcard_noff := name_pool_len;
   name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
   wildcard_nlen := 1 end;
+procedure intern_nil;
+begin nil_noff := name_pool_len;
+  name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  nil_nlen := 3 end;
 procedure intern_board;
 begin
   set_led_noff := name_pool_len;
@@ -426,6 +441,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(switch_noff, switch_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, putc_noff, putc_nlen) then begin
       eval_expr := mk_val_closure(putc_noff, putc_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, nil_noff, nil_nlen) then begin
+      eval_expr := mk_val_nil; exit end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
@@ -501,6 +518,7 @@ begin
   intern_print_int;
   intern_board;
   intern_wildcard;
+  intern_nil;
   while not eof do begin
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);
@@ -521,6 +539,8 @@ begin
           crlf
         end
         else if result^.vk = VK_UNIT then crlf
+        else if result^.vk = VK_NIL then begin write('[]'); crlf end
+        else if result^.vk = VK_CONS then begin write('cons'); crlf end
       end
     end
   end
