@@ -1,0 +1,15 @@
+> List.length [1;2;3]
+3
+> List.length []
+0
+> List.rev [1;2;3]
+[3; 2; 1]
+> List.rev []
+[]
+> List.hd [42; 99]
+42
+> List.tl [1; 2; 3]
+[2; 3]
+> List.is_empty nil
+true
+> List.is_empty [1]false

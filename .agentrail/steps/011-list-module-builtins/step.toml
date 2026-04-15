@@ -1,6 +1,6 @@
 number = 11
 slug = "list-module-builtins"
-status = "in-progress"
+status = "blocked"
 description = """
 Implement List.length, List.rev, List.hd, List.tl, List.is_empty.
 

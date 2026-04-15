@@ -1,0 +1,1 @@
+BLOCKED: Source exceeds 32KB INPUT_BUF_SIZE. Filed sw-cor24-pascal#18 to raise limit.
