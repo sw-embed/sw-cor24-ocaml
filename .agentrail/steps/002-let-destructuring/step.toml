@@ -1,6 +1,6 @@
 number = 2
 slug = "let-destructuring"
-status = "in-progress"
+status = "completed"
 description = """
 Extend 'let' to accept a pattern on the left-hand side.
 
@@ -9,4 +9,5 @@ Currently:
 role = "production"
 context_files = []
 created_at = "2026-04-15T10:43:22"
-commits = []
+completed_at = "2026-04-15T10:55:41"
+commits = ["af615642cf73230b116f7d4fd5ea56b33c576b91"]

@@ -1,0 +1,1 @@
+function keyword working as sugar for 'fun #arg -> match #arg with ...'. All pattern forms usable. 35 tests passing.

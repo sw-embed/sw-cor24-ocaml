@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_let_destructure.ml"
+exit_code = 0
