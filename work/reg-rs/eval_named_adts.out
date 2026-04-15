@@ -1,0 +1,17 @@
+> type color = Red | Green | Blue
+> Red
+Red
+> Green
+Green
+> Blue
+Blue
+> match Red with Red -> 1 | Green -> 2 | Blue -> 3
+1
+> match Green with Red -> 1 | Green -> 2 | Blue -> 3
+2
+> match Blue with Red -> 1 | Green -> 2 | Blue -> 3
+3
+> let name = function Red -> "red" | Green -> "green" | Blue -> "blue" in name Blue
+"blue"
+> type shape = Circle | Square | Triangle
+> match Circle with Red -> 1 | Green -> 2 | Blue -> 3 | Circle -> 10 | Square -> 11 | Triangle -> 1210

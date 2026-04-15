@@ -17,21 +17,26 @@ const
   TK_DOT=56; TK_COMMA=57;
   TK_MATCH=21; TK_WITH=22; TK_FUNCTION=23; TK_PIPE=58;
   TK_STRING=59; TK_CARET=60;
+  TK_TYPE=24;
   TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
   EK_IF=6; EK_LET=7; EK_FUN=8; EK_APP=9;
   EK_NIL=10; EK_MATCH=11; EK_MATCH_ARM=12; EK_STRING=13;
+  EK_TYPEDECL=14;
   PK_WILDCARD=0; PK_INT=1; PK_BOOL=2; PK_VAR=3;
   PK_NIL=4; PK_CONS=5; PK_PAIR=6; PK_NONE=7; PK_SOME=8;
+  PK_CTOR=9;
   OP_ADD=30; OP_SUB=31; OP_MUL=32; OP_DIV=33; OP_MOD=20;
   OP_EQ=34; OP_NEQ=35; OP_LT=36; OP_GT=37;
   OP_LE=38; OP_GE=39; OP_AND=40; OP_OR=41; OP_NOT=19;
   OP_CONS=55; OP_PAIR=56; OP_CONCAT=57;
   NAME_POOL_MAX=2048;
+  CTOR_MAX=64;
   VK_INT=1; VK_BOOL=2; VK_CLOSURE=3; VK_UNIT=4;
   VK_NIL=5; VK_CONS=6; VK_PAIR=7;
   VK_NONE=8; VK_SOME=9; VK_STRING=10;
+  VK_CTOR=11;
 
 type
   PPat = ^Pat;
@@ -96,6 +101,9 @@ var
   let_tmp_noff: integer; let_tmp_nlen: integer;
   print_endline_noff: integer; print_endline_nlen: integer;
   string_length_noff: integer; string_length_nlen: integer;
+  ctor_names_off: array[0..63] of integer;
+  ctor_names_len: array[0..63] of integer;
+  ctor_count: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -145,6 +153,7 @@ begin classify_ident := TK_IDENT;
     if (tok_id[0]='t') and (tok_id[1]='h') and (tok_id[2]='e') and (tok_id[3]='n') then classify_ident := TK_THEN
     else if (tok_id[0]='e') and (tok_id[1]='l') and (tok_id[2]='s') and (tok_id[3]='e') then classify_ident := TK_ELSE
     else if (tok_id[0]='t') and (tok_id[1]='r') and (tok_id[2]='u') and (tok_id[3]='e') then classify_ident := TK_TRUE
+    else if (tok_id[0]='t') and (tok_id[1]='y') and (tok_id[2]='p') and (tok_id[3]='e') then classify_ident := TK_TYPE
     else if (tok_id[0]='w') and (tok_id[1]='i') and (tok_id[2]='t') and (tok_id[3]='h') then classify_ident := TK_WITH
   end else if tok_id_len = 5 then begin
     if (tok_id[0]='f') and (tok_id[1]='a') and (tok_id[2]='l') and (tok_id[3]='s') and (tok_id[4]='e') then classify_ident := TK_FALSE
@@ -340,6 +349,28 @@ begin new(p); p^.pk := PK_NONE; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub
 function mk_pat_some(sub: PPat): PPat;
 var p: PPat;
 begin new(p); p^.pk := PK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := sub; p^.sub2 := nil; mk_pat_some := p end;
+function mk_pat_ctor(tag: integer): PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_ctor := p end;
+
+function ctor_lookup(noff, nlen: integer): integer;
+var i, j: integer; eq: boolean;
+begin ctor_lookup := -1; i := 0;
+  while i < ctor_count do begin
+    if ctor_names_len[i] = nlen then begin
+      eq := true; j := 0;
+      while (j < nlen) and eq do begin
+        if name_pool[ctor_names_off[i]+j] <> name_pool[noff+j] then eq := false;
+        j := j+1 end;
+      if eq then begin ctor_lookup := i; exit end end;
+    i := i+1 end end;
+procedure register_ctor;
+var off: integer;
+begin if ctor_count >= CTOR_MAX then exit;
+  off := pool_intern;
+  ctor_names_off[ctor_count] := off;
+  ctor_names_len[ctor_count] := tok_id_len;
+  ctor_count := ctor_count+1 end;
 
 { === Parser === }
 function parse_expr: PExpr; forward;
@@ -507,6 +538,19 @@ function parse_expr: PExpr;
 var e, val_e, body_e, match_e: PExpr; is_rec: boolean; my_noff, my_nlen: integer;
     let_pat: PPat;
 begin parse_expr := nil;
+  if tok=TK_TYPE then begin
+    lex_next;
+    if tok <> TK_IDENT then begin parse_error := true; exit end;
+    lex_next;
+    if tok <> TK_EQ then begin parse_error := true; exit end;
+    lex_next;
+    if tok = TK_PIPE then lex_next;
+    if tok <> TK_IDENT then begin parse_error := true; exit end;
+    register_ctor; lex_next;
+    while tok = TK_PIPE do begin lex_next;
+      if tok <> TK_IDENT then begin parse_error := true; exit end;
+      register_ctor; lex_next end;
+    e := mk_int(0); e^.kind := EK_TYPEDECL; parse_expr := e; exit end;
   if tok=TK_LET then begin lex_next; is_rec := false;
     if tok=TK_REC then begin is_rec := true; lex_next end;
     if is_rec then begin
@@ -609,7 +653,7 @@ end;
 { === Pattern parser === }
 
 function parse_pattern_atom: PPat;
-var p, sub: PPat; off: integer;
+var p, sub: PPat; off, sub_i: integer;
 begin
   parse_pattern_atom := nil;
   if tok = TK_INT then begin
@@ -638,12 +682,11 @@ begin
       parse_pattern_atom := mk_pat_some(sub);
       exit
     end;
-    { regular variable binding }
     off := pool_intern;
+    sub_i := ctor_lookup(off, tok_id_len);
+    if sub_i >= 0 then begin parse_pattern_atom := mk_pat_ctor(sub_i); lex_next; exit end;
     parse_pattern_atom := mk_pat_var(off, tok_id_len);
-    lex_next;
-    exit
-  end;
+    lex_next; exit end;
   if tok = TK_LBRACKET then begin
     lex_next;
     if tok = TK_RBRACKET then begin
@@ -820,6 +863,9 @@ begin new(p); p^.vk := VK_STRING; p^.ival := 0; p^.noff := off; p^.nlen := len; 
 function mk_val_unit: PVal;
 var p: PVal;
 begin new(p); p^.vk := VK_UNIT; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_unit := p end;
+function mk_val_ctor(tag: integer): PVal;
+var p: PVal;
+begin new(p); p^.vk := VK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_ctor := p end;
 procedure intern_print_int;
 begin print_int_noff := name_pool_len;
   name_pool[name_pool_len] := 'p'; name_pool_len := name_pool_len+1;
@@ -1110,8 +1156,11 @@ begin
     exit
   end;
 
-  match_success := false
-end;
+  if p^.pk = PK_CTOR then begin
+    if (v^.vk = VK_CTOR) and (v^.ival = p^.ival) then exit;
+    match_success := false; exit end;
+
+  match_success := false end;
 
 function list_length_impl(l: PVal): integer;
 var n: integer;
@@ -1144,6 +1193,7 @@ begin eval_expr := nil;
   if e^.kind = EK_BOOL then begin eval_expr := mk_val_bool(e^.ival); exit end;
   if e^.kind = EK_NIL then begin eval_expr := mk_val_nil; exit end;
   if e^.kind = EK_STRING then begin eval_expr := mk_val_string(e^.noff, e^.nlen); exit end;
+  if e^.kind = EK_TYPEDECL then begin eval_expr := mk_val_unit; exit end;
   if e^.kind = EK_VAR then begin
     if names_equal(e^.noff, e^.nlen, print_int_noff, print_int_nlen) then begin
       eval_expr := mk_val_closure(print_int_noff, print_int_nlen, nil, nil); exit end;
@@ -1187,6 +1237,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(print_endline_noff, print_endline_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, string_length_noff, string_length_nlen) then begin
       eval_expr := mk_val_closure(string_length_noff, string_length_nlen, nil, nil); exit end;
+    a := ctor_lookup(e^.noff, e^.nlen);
+    if a >= 0 then begin eval_expr := mk_val_ctor(a); exit end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
@@ -1382,6 +1434,9 @@ begin
     print_value(v^.head);
     exit
   end;
+  if v^.vk = VK_CTOR then begin i := 0;
+    while i < ctor_names_len[v^.ival] do begin
+      write(name_pool[ctor_names_off[v^.ival]+i]); i := i+1 end; exit end;
   if v^.vk = VK_CLOSURE then begin write('<fun>'); exit end;
   write('<?>')
 end;
@@ -1390,6 +1445,7 @@ end;
 begin
   name_pool_len := 0;
   string_pool_len := 0;
+  ctor_count := 0;
   intern_print_int;
   intern_board;
   intern_wildcard;
