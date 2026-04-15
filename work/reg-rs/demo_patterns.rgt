@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/demo_patterns.ml"
+exit_code = 0

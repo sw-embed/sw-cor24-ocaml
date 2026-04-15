@@ -53,6 +53,10 @@ demo-led:
 demo-lists:
     @./scripts/run-ocaml.sh tests/demo_lists_pairs.ml
 
+# Run pattern matching demo (sum/length/map/filter/safe_div with match)
+demo-match:
+    @./scripts/run-ocaml.sh tests/demo_patterns.ml
+
 # Run a REPL session from a file (one expression per line)
 repl-session file:
     @./scripts/run-ocaml.sh {{file}}

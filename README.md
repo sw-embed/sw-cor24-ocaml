@@ -23,6 +23,10 @@ an AOT-compiled native COR24 binary.
 - Comments: `(* ... *)` (nestable)
 - **Lists**: `[]`, `[1; 2; 3]`, cons `1 :: xs`, pretty-printed
 - **Pairs**: `(a, b)` tuples, pretty-printed
+- **Options**: `None`, `Some x`
+- **Pattern matching**: `match e with p1 -> e1 | p2 -> e2 | ...`
+  with patterns for ints, bools, wildcards, variables, lists,
+  pairs, and options
 - **Qualified names**: `List.length`, `List.rev` (dotted identifiers)
 
 ## Built-in Primitives
@@ -58,6 +62,7 @@ just demo          # one-shot: print_int 42
 just demo-fact     # factorial
 just demo-led      # LED toggle demo
 just demo-lists    # lists, pairs, sum/length/map
+just demo-match    # pattern matching (idiomatic map/filter/safe_div)
 ```
 
 ### Canonical OCaml Demos
@@ -82,6 +87,16 @@ let p = (3, 4) in fst p * fst p + snd p * snd p
 (* Qualified names *)
 List.rev [1; 2; 3; 4; 5]
 (* [5; 4; 3; 2; 1] *)
+
+(* Pattern matching -- idiomatic OCaml *)
+let rec map = fun f l -> match l with [] -> [] | h :: t -> f h :: map f t in map (fun x -> x * 2) [1;2;3]
+(* [2; 4; 6] *)
+
+let safe_div = fun x y -> if y = 0 then None else Some (x / y) in safe_div 10 3
+(* Some 3 *)
+
+match Some 7 with None -> 0 | Some n -> n + 1
+(* 8 *)
 ```
 
 ### Interactive Session Example
@@ -107,8 +122,14 @@ PVM OK
 
 ## Status
 
-Phase 0 (core), Phase 1 (I/O), and Phase 2 (lists + pairs) complete.
-32 reg-rs tests passing. Pattern matching planned next.
+Phase 0 (core), Phase 1 (I/O), Phase 2 (lists + pairs), and
+Phase 3 (pattern matching + option) complete. 34 reg-rs tests
+passing. The canonical OCaml one-liner runs correctly:
+
+```ocaml
+let rec map = fun f l -> match l with [] -> [] | h :: t -> f h :: map f t in map (fun x -> x * 2) [1;2;3]
+(* [2; 4; 6] *)
+```
 
 ## Documentation
 

@@ -1,6 +1,6 @@
 number = 6
 slug = "pattern-match-demos"
-status = "pending"
+status = "in-progress"
 description = """
 Write the canonical pattern-matching demo programs as OCaml source files.
 
