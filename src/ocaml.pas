@@ -67,6 +67,11 @@ var
   hd_noff: integer; hd_nlen: integer;
   tl_noff: integer; tl_nlen: integer;
   isempty_noff: integer; isempty_nlen: integer;
+  list_length_noff: integer; list_length_nlen: integer;
+  list_rev_noff: integer; list_rev_nlen: integer;
+  list_hd_noff: integer; list_hd_nlen: integer;
+  list_tl_noff: integer; list_tl_nlen: integer;
+  list_isempty_noff: integer; list_isempty_nlen: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -487,6 +492,70 @@ begin
   name_pool[name_pool_len] := 'y'; name_pool_len := name_pool_len+1;
   isempty_nlen := 8
 end;
+procedure intern_list_module;
+begin
+  { "List.length" = L i s t . l e n g t h = 11 chars }
+  list_length_noff := name_pool_len;
+  name_pool[name_pool_len] := 'L'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'g'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
+  list_length_nlen := 11;
+  { "List.rev" = 8 chars }
+  list_rev_noff := name_pool_len;
+  name_pool[name_pool_len] := 'L'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'r'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'v'; name_pool_len := name_pool_len+1;
+  list_rev_nlen := 8;
+  { "List.hd" = 7 chars }
+  list_hd_noff := name_pool_len;
+  name_pool[name_pool_len] := 'L'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  list_hd_nlen := 7;
+  { "List.tl" = 7 chars }
+  list_tl_noff := name_pool_len;
+  name_pool[name_pool_len] := 'L'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  list_tl_nlen := 7;
+  { "List.is_empty" = 13 chars }
+  list_isempty_noff := name_pool_len;
+  name_pool[name_pool_len] := 'L'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'm'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'p'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'y'; name_pool_len := name_pool_len+1;
+  list_isempty_nlen := 13
+end;
 procedure intern_board;
 begin
   set_led_noff := name_pool_len;
@@ -530,6 +599,28 @@ begin
   name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
   putc_nlen := 4
 end;
+function list_length_impl(l: PVal): integer;
+var n: integer;
+begin
+  n := 0;
+  while (l <> nil) and (l^.vk = VK_CONS) do begin
+    n := n + 1;
+    l := l^.tail
+  end;
+  list_length_impl := n
+end;
+
+function list_rev_impl(l: PVal): PVal;
+var acc: PVal;
+begin
+  acc := mk_val_nil;
+  while (l <> nil) and (l^.vk = VK_CONS) do begin
+    acc := mk_val_cons(l^.head, acc);
+    l := l^.tail
+  end;
+  list_rev_impl := acc
+end;
+
 function eval_expr(e: PExpr; env: PEnv): PVal; forward;
 function eval_expr(e: PExpr; env: PEnv): PVal;
 var lv, rv, fv, av: PVal; l, r, x, bd: PExpr; ne, ce: PEnv; a, b, res: integer;
@@ -558,6 +649,16 @@ begin eval_expr := nil;
     if names_equal(e^.noff, e^.nlen, tl_noff, tl_nlen) then begin
       eval_expr := mk_val_closure(tl_noff, tl_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, isempty_noff, isempty_nlen) then begin
+      eval_expr := mk_val_closure(isempty_noff, isempty_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_length_noff, list_length_nlen) then begin
+      eval_expr := mk_val_closure(list_length_noff, list_length_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_rev_noff, list_rev_nlen) then begin
+      eval_expr := mk_val_closure(list_rev_noff, list_rev_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_hd_noff, list_hd_nlen) then begin
+      eval_expr := mk_val_closure(hd_noff, hd_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_tl_noff, list_tl_nlen) then begin
+      eval_expr := mk_val_closure(tl_noff, tl_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_isempty_noff, list_isempty_nlen) then begin
       eval_expr := mk_val_closure(isempty_noff, isempty_nlen, nil, nil); exit end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
@@ -634,6 +735,12 @@ begin eval_expr := nil;
           if av^.vk = VK_NIL then eval_expr := mk_val_bool(1)
           else eval_expr := mk_val_bool(0);
           exit end;
+        if names_equal(fv^.noff, fv^.nlen, list_length_noff, list_length_nlen) then begin
+          if (av^.vk <> VK_NIL) and (av^.vk <> VK_CONS) then begin eval_error := true; exit end;
+          eval_expr := mk_val_int(list_length_impl(av)); exit end;
+        if names_equal(fv^.noff, fv^.nlen, list_rev_noff, list_rev_nlen) then begin
+          if (av^.vk <> VK_NIL) and (av^.vk <> VK_CONS) then begin eval_error := true; exit end;
+          eval_expr := list_rev_impl(av); exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
       ne := env_extend(ce, fv^.noff, fv^.nlen, av);
@@ -680,6 +787,7 @@ begin
   intern_wildcard;
   intern_nil;
   intern_list_ops;
+  intern_list_module;
   while not eof do begin
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);

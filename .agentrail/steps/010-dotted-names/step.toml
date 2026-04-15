@@ -1,6 +1,6 @@
 number = 10
 slug = "dotted-names"
-status = "in-progress"
+status = "completed"
 description = """
 Add qualified identifier parsing (List.length etc).
 
@@ -8,4 +8,5 @@ Lexer: add TK_DOT for '...."""
 role = "production"
 context_files = []
 created_at = "2026-04-14T18:50:51"
-commits = []
+completed_at = "2026-04-14T19:57:05"
+commits = ["5b33d97cd3626057eb03c923aced53f6c8fecc9a"]
