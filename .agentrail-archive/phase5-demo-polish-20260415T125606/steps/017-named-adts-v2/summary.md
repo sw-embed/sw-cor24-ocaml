@@ -1,0 +1,1 @@
+Implemented named ADTs (step 004 redo). 'type T = C1 | C2 | C3' registers nullary constructors in a global table with unique tags. Pattern matching via PK_CTOR, pretty-printer walks registry to print name. 39 reg-rs tests pass. Unlocks the final plan target.

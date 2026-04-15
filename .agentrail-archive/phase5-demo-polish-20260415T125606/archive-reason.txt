@@ -1,0 +1,1 @@
+All four stated plan targets met: function keyword (001), let-destructuring (002), strings (015), named ADTs (017). Remaining pending steps were scope-creep additions, better tracked in a follow-on saga focused on unlocking the final batch of canonical one-liner demos.
