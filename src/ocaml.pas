@@ -296,6 +296,7 @@ function parse_list_elements: PExpr; forward;
 function parse_pattern: PPat; forward;
 function parse_pattern_atom: PPat; forward;
 function parse_pattern_list: PPat; forward;
+function parse_match: PExpr; forward;
 function parse_fun_params: PExpr; forward;
 function is_atom_start: boolean;
 begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) end;
@@ -446,6 +447,8 @@ begin parse_expr := nil;
     e := parse_expr; parse_expr := mk_if(val_e, body_e, e); exit end;
   if tok=TK_FUN then begin lex_next;
     parse_expr := parse_fun_params; exit end;
+  if tok=TK_MATCH then begin
+    parse_expr := parse_match; exit end;
   parse_expr := parse_logic end;
 
 function parse_seq: PExpr;
@@ -567,6 +570,45 @@ begin
     parse_pattern := mk_pat_cons(p, rest)
   end else
     parse_pattern := p
+end;
+
+function parse_match: PExpr;
+{ match expr with [|] pat -> body ('|' pat -> body)* }
+var scrutinee, body, first_arm, arm, prev_arm: PExpr;
+    pat: PPat;
+begin
+  parse_match := nil;
+  if tok <> TK_MATCH then begin parse_error := true; exit end;
+  lex_next;
+  scrutinee := parse_expr;
+  if parse_error then exit;
+  if tok <> TK_WITH then begin parse_error := true; exit end;
+  lex_next;
+  { Optional leading pipe }
+  if tok = TK_PIPE then lex_next;
+  { First arm }
+  pat := parse_pattern;
+  if parse_error then exit;
+  if tok <> TK_ARROW then begin parse_error := true; exit end;
+  lex_next;
+  body := parse_expr;
+  if parse_error then exit;
+  first_arm := mk_arm(pat, body);
+  prev_arm := first_arm;
+  { Additional arms }
+  while (tok = TK_PIPE) and not parse_error do begin
+    lex_next;
+    pat := parse_pattern;
+    if parse_error then exit;
+    if tok <> TK_ARROW then begin parse_error := true; exit end;
+    lex_next;
+    body := parse_expr;
+    if parse_error then exit;
+    arm := mk_arm(pat, body);
+    prev_arm^.right := arm;
+    prev_arm := arm
+  end;
+  parse_match := mk_match(scrutinee, first_arm)
 end;
 
 { === Evaluator === }
