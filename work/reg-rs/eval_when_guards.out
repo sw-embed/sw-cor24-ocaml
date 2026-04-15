@@ -1,0 +1,11 @@
+> let abs x = match x with n when n < 0 -> -n | n -> n in abs (-5)
+5
+> let abs x = match x with n when n < 0 -> -n | n -> n in abs 7
+7
+> let sign x = match x with n when n < 0 -> -1 | 0 -> 0 | _ -> 1 in sign (-10)
+-1
+> let sign x = match x with n when n < 0 -> -1 | 0 -> 0 | _ -> 1 in sign 0
+0
+> let sign x = match x with n when n < 0 -> -1 | 0 -> 0 | _ -> 1 in sign 99
+1
+> match 7 with n when n > 10 -> "big" | n when n > 5 -> "mid" | _ -> "small""mid"

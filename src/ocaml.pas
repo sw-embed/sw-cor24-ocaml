@@ -17,7 +17,7 @@ const
   TK_DOT=56; TK_COMMA=57;
   TK_MATCH=21; TK_WITH=22; TK_FUNCTION=23; TK_PIPE=58;
   TK_STRING=59; TK_CARET=60;
-  TK_TYPE=24;
+  TK_TYPE=24; TK_WHEN=25;
   TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
@@ -162,6 +162,7 @@ begin classify_ident := TK_IDENT;
     else if (tok_id[0]='t') and (tok_id[1]='r') and (tok_id[2]='u') and (tok_id[3]='e') then classify_ident := TK_TRUE
     else if (tok_id[0]='t') and (tok_id[1]='y') and (tok_id[2]='p') and (tok_id[3]='e') then classify_ident := TK_TYPE
     else if (tok_id[0]='w') and (tok_id[1]='i') and (tok_id[2]='t') and (tok_id[3]='h') then classify_ident := TK_WITH
+    else if (tok_id[0]='w') and (tok_id[1]='h') and (tok_id[2]='e') and (tok_id[3]='n') then classify_ident := TK_WHEN
   end else if tok_id_len = 5 then begin
     if (tok_id[0]='f') and (tok_id[1]='a') and (tok_id[2]='l') and (tok_id[3]='s') and (tok_id[4]='e') then classify_ident := TK_FALSE
     else if (tok_id[0]='m') and (tok_id[1]='a') and (tok_id[2]='t') and (tok_id[3]='c') and (tok_id[4]='h') then classify_ident := TK_MATCH
@@ -747,8 +748,8 @@ begin
 end;
 
 function parse_match: PExpr;
-{ match expr with [|] pat -> body ('|' pat -> body)* }
-var scrutinee, body, first_arm, arm, prev_arm: PExpr;
+{ match expr with [|] pat [when guard] -> body ('|' pat [when guard] -> body)* }
+var scrutinee, body, first_arm, arm, prev_arm, guard: PExpr;
     pat: PPat;
 begin
   parse_match := nil;
@@ -758,27 +759,30 @@ begin
   if parse_error then exit;
   if tok <> TK_WITH then begin parse_error := true; exit end;
   lex_next;
-  { Optional leading pipe }
   if tok = TK_PIPE then lex_next;
-  { First arm }
   pat := parse_pattern;
   if parse_error then exit;
+  guard := nil;
+  if tok = TK_WHEN then begin lex_next; guard := parse_expr; if parse_error then exit end;
   if tok <> TK_ARROW then begin parse_error := true; exit end;
   lex_next;
   body := parse_expr;
   if parse_error then exit;
   first_arm := mk_arm(pat, body);
+  first_arm^.extra := guard;
   prev_arm := first_arm;
-  { Additional arms }
   while (tok = TK_PIPE) and not parse_error do begin
     lex_next;
     pat := parse_pattern;
     if parse_error then exit;
+    guard := nil;
+    if tok = TK_WHEN then begin lex_next; guard := parse_expr; if parse_error then exit end;
     if tok <> TK_ARROW then begin parse_error := true; exit end;
     lex_next;
     body := parse_expr;
     if parse_error then exit;
     arm := mk_arm(pat, body);
+    arm^.extra := guard;
     prev_arm^.right := arm;
     prev_arm := arm
   end;
@@ -786,9 +790,9 @@ begin
 end;
 
 function parse_function_expr: PExpr;
-{ 'function' [|]? pat -> body ('|' pat -> body)*
+{ 'function' [|]? pat [when guard] -> body ('|' pat [when guard] -> body)*
   Sugar for 'fun #arg -> match #arg with ...' }
-var body, first_arm, arm, prev_arm, match_expr, fun_node: PExpr;
+var body, first_arm, arm, prev_arm, match_expr, fun_node, guard: PExpr;
     pat: PPat;
 begin
   parse_function_expr := nil;
@@ -797,21 +801,27 @@ begin
   if tok = TK_PIPE then lex_next;
   pat := parse_pattern;
   if parse_error then exit;
+  guard := nil;
+  if tok = TK_WHEN then begin lex_next; guard := parse_expr; if parse_error then exit end;
   if tok <> TK_ARROW then begin parse_error := true; exit end;
   lex_next;
   body := parse_expr;
   if parse_error then exit;
   first_arm := mk_arm(pat, body);
+  first_arm^.extra := guard;
   prev_arm := first_arm;
   while (tok = TK_PIPE) and not parse_error do begin
     lex_next;
     pat := parse_pattern;
     if parse_error then exit;
+    guard := nil;
+    if tok = TK_WHEN then begin lex_next; guard := parse_expr; if parse_error then exit end;
     if tok <> TK_ARROW then begin parse_error := true; exit end;
     lex_next;
     body := parse_expr;
     if parse_error then exit;
     arm := mk_arm(pat, body);
+    arm^.extra := guard;
     prev_arm^.right := arm;
     prev_arm := arm
   end;
@@ -1484,9 +1494,15 @@ begin eval_expr := nil;
     while arm <> nil do begin
       ne := try_match(arm^.pat, lv, env);
       if match_success then begin
-        bd := arm^.left;
-        eval_expr := eval_expr(bd, ne);
-        exit
+        if arm^.extra <> nil then begin
+          rv := eval_expr(arm^.extra, ne);
+          if eval_error then exit;
+          if (rv^.vk = VK_BOOL) and (rv^.ival = 1) then begin
+            bd := arm^.left; eval_expr := eval_expr(bd, ne); exit
+          end
+        end else begin
+          bd := arm^.left; eval_expr := eval_expr(bd, ne); exit
+        end
       end;
       arm := arm^.right
     end;
