@@ -1,0 +1,1 @@
+Added string_of_int and int_of_string builtins. Implemented as named nil-body closures dispatched in EK_APP; helpers string_of_int_impl / int_of_string_impl encapsulate digit emission + parsing. P24P doesn't allow local array vars so the digit scratch buffer is global (soi_tmp). 41 reg-rs tests (37 pass, same 4 lex_* still blocked on upstream issue #20).

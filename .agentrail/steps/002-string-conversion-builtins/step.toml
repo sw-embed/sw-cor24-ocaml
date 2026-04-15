@@ -1,6 +1,6 @@
 number = 2
 slug = "string-conversion-builtins"
-status = "in-progress"
+status = "completed"
 description = """
 Add string_of_int and int_of_string builtins.
 
@@ -9,4 +9,5 @@ Semantics:
 role = "legacy"
 context_files = []
 created_at = "2026-04-15T13:40:28"
-commits = []
+completed_at = "2026-04-15T13:45:52"
+commits = ["04e9f6d60532ef86f7b57cafcd6c43ec136efbbb"]
