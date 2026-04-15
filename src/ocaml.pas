@@ -97,6 +97,9 @@ var
   list_filter_noff: integer; list_filter_nlen: integer;
   list_fold_noff: integer; list_fold_nlen: integer;
   list_iter_noff: integer; list_iter_nlen: integer;
+  string_of_int_noff: integer; string_of_int_nlen: integer;
+  int_of_string_noff: integer; int_of_string_nlen: integer;
+  soi_tmp: array[0..31] of char;
   fst_noff: integer; fst_nlen: integer;
   snd_noff: integer; snd_nlen: integer;
   none_noff: integer; none_nlen: integer;
@@ -1000,6 +1003,19 @@ begin
   pool_put('i'); pool_put('t'); pool_put('e'); pool_put('r');
   list_iter_nlen := 9
 end;
+procedure intern_string_conv;
+begin
+  string_of_int_noff := name_pool_len;
+  pool_put('s'); pool_put('t'); pool_put('r'); pool_put('i'); pool_put('n'); pool_put('g');
+  pool_put('_'); pool_put('o'); pool_put('f'); pool_put('_');
+  pool_put('i'); pool_put('n'); pool_put('t');
+  string_of_int_nlen := 13;
+  int_of_string_noff := name_pool_len;
+  pool_put('i'); pool_put('n'); pool_put('t');
+  pool_put('_'); pool_put('o'); pool_put('f'); pool_put('_');
+  pool_put('s'); pool_put('t'); pool_put('r'); pool_put('i'); pool_put('n'); pool_put('g');
+  int_of_string_nlen := 13
+end;
 procedure intern_pair_ops;
 begin
   fst_noff := name_pool_len;
@@ -1260,6 +1276,54 @@ begin
     l := l^.tail end;
   list_fold_impl := acc end;
 
+function string_of_int_impl(n: integer): PVal;
+var tmp_len, i: integer; is_neg: boolean; off, len: integer;
+begin
+  is_neg := false;
+  if n < 0 then begin is_neg := true; n := -n end;
+  tmp_len := 0;
+  if n = 0 then begin soi_tmp[0] := '0'; tmp_len := 1 end
+  else while n > 0 do begin
+    soi_tmp[tmp_len] := chr(ord('0') + (n mod 10));
+    tmp_len := tmp_len + 1;
+    n := n div 10
+  end;
+  off := string_pool_len; len := 0;
+  if is_neg then begin
+    if string_pool_len < 4095 then begin
+      string_pool[string_pool_len] := '-'; string_pool_len := string_pool_len + 1; len := 1
+    end
+  end;
+  i := tmp_len - 1;
+  while i >= 0 do begin
+    if string_pool_len < 4095 then begin
+      string_pool[string_pool_len] := soi_tmp[i]; string_pool_len := string_pool_len + 1; len := len + 1
+    end;
+    i := i - 1
+  end;
+  string_of_int_impl := mk_val_string(off, len)
+end;
+
+function int_of_string_impl(s: PVal): PVal;
+var i, j, acc: integer; is_neg: boolean; c: char;
+begin
+  int_of_string_impl := nil;
+  if s^.nlen = 0 then begin eval_error := true; exit end;
+  i := s^.noff; j := s^.noff + s^.nlen;
+  is_neg := false;
+  if string_pool[i] = '-' then begin is_neg := true; i := i + 1 end;
+  if i >= j then begin eval_error := true; exit end;
+  acc := 0;
+  while i < j do begin
+    c := string_pool[i];
+    if (c < '0') or (c > '9') then begin eval_error := true; exit end;
+    acc := acc * 10 + (ord(c) - ord('0'));
+    i := i + 1
+  end;
+  if is_neg then acc := -acc;
+  int_of_string_impl := mk_val_int(acc)
+end;
+
 function list_iter_impl(f, l: PVal): PVal;
 var v: PVal;
 begin
@@ -1329,6 +1393,10 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(list_fold_noff, list_fold_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, list_iter_noff, list_iter_nlen) then begin
       eval_expr := mk_val_closure(list_iter_noff, list_iter_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, string_of_int_noff, string_of_int_nlen) then begin
+      eval_expr := mk_val_closure(string_of_int_noff, string_of_int_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, int_of_string_noff, int_of_string_nlen) then begin
+      eval_expr := mk_val_closure(int_of_string_noff, int_of_string_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, fst_noff, fst_nlen) then begin
       eval_expr := mk_val_closure(fst_noff, fst_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, snd_noff, snd_nlen) then begin
@@ -1480,6 +1548,12 @@ begin eval_expr := nil;
         if names_equal(fv^.noff, fv^.nlen, string_length_noff, string_length_nlen) then begin
           if av^.vk <> VK_STRING then begin eval_error := true; exit end;
           eval_expr := mk_val_int(av^.nlen); exit end;
+        if names_equal(fv^.noff, fv^.nlen, string_of_int_noff, string_of_int_nlen) then begin
+          if av^.vk <> VK_INT then begin eval_error := true; exit end;
+          eval_expr := string_of_int_impl(av^.ival); exit end;
+        if names_equal(fv^.noff, fv^.nlen, int_of_string_noff, int_of_string_nlen) then begin
+          if av^.vk <> VK_STRING then begin eval_error := true; exit end;
+          eval_expr := int_of_string_impl(av); exit end;
         if names_equal(fv^.noff, fv^.nlen, list_map_noff, list_map_nlen) then begin
           if fv^.ival = 0 then begin
             eval_expr := mk_partial(list_map_noff, list_map_nlen, 1, av, nil); exit end;
@@ -1575,6 +1649,7 @@ begin
   intern_list_ops;
   intern_list_module;
   intern_list_hof;
+  intern_string_conv;
   intern_pair_ops;
   intern_option;
   intern_fn_arg;
