@@ -1,8 +1,9 @@
 number = 16
 slug = "function-form-let-v2"
-status = "in-progress"
+status = "completed"
 description = "let f x y z = body as sugar for let f = fun x y z -> body. Highest-value step..."
 role = "production"
 context_files = []
 created_at = "2026-04-15T11:13:34"
-commits = []
+completed_at = "2026-04-15T11:18:33"
+commits = ["eb5528d832c3dc61f055263f50248a8f4ce83a16"]

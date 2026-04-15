@@ -1,0 +1,1 @@
+Implemented function-form let sugar: 'let f x y z = body' desugars to nested fun expressions. Works for both plain let and let rec. 7-case regression test passes. Unlocks ~8 canonical demos (fact, fib, compose, safe_div, etc). All 38 reg-rs tests passing.
