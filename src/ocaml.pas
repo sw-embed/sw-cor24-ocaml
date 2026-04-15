@@ -15,11 +15,14 @@ const
   TK_LPAREN=50; TK_RPAREN=51; TK_SEMI=52;
   TK_LBRACKET=53; TK_RBRACKET=54; TK_COLONCOLON=55;
   TK_DOT=56; TK_COMMA=57;
+  TK_MATCH=21; TK_WITH=22; TK_PIPE=58;
   TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
   EK_IF=6; EK_LET=7; EK_FUN=8; EK_APP=9;
-  EK_NIL=10;
+  EK_NIL=10; EK_MATCH=11; EK_MATCH_ARM=12;
+  PK_WILDCARD=0; PK_INT=1; PK_BOOL=2; PK_VAR=3;
+  PK_NIL=4; PK_CONS=5; PK_PAIR=6; PK_NONE=7; PK_SOME=8;
   OP_ADD=30; OP_SUB=31; OP_MUL=32; OP_DIV=33; OP_MOD=20;
   OP_EQ=34; OP_NEQ=35; OP_LT=36; OP_GT=37;
   OP_LE=38; OP_GE=39; OP_AND=40; OP_OR=41; OP_NOT=19;
@@ -30,11 +33,19 @@ const
   VK_NONE=8; VK_SOME=9;
 
 type
+  PPat = ^Pat;
   PExpr = ^Expr;
   Expr = record
     kind: integer; ival: integer; op: integer;
     noff: integer; nlen: integer;
-    left: PExpr; right: PExpr; extra: PExpr
+    left: PExpr; right: PExpr; extra: PExpr;
+    pat: PPat
+  end;
+  Pat = record
+    pk: integer;
+    ival: integer;
+    noff: integer; nlen: integer;
+    sub1: PPat; sub2: PPat
   end;
   PEnv = ^EnvEntry;
   PVal = ^Val;
@@ -126,8 +137,10 @@ begin classify_ident := TK_IDENT;
     if (tok_id[0]='t') and (tok_id[1]='h') and (tok_id[2]='e') and (tok_id[3]='n') then classify_ident := TK_THEN
     else if (tok_id[0]='e') and (tok_id[1]='l') and (tok_id[2]='s') and (tok_id[3]='e') then classify_ident := TK_ELSE
     else if (tok_id[0]='t') and (tok_id[1]='r') and (tok_id[2]='u') and (tok_id[3]='e') then classify_ident := TK_TRUE
+    else if (tok_id[0]='w') and (tok_id[1]='i') and (tok_id[2]='t') and (tok_id[3]='h') then classify_ident := TK_WITH
   end else if tok_id_len = 5 then begin
     if (tok_id[0]='f') and (tok_id[1]='a') and (tok_id[2]='l') and (tok_id[3]='s') and (tok_id[4]='e') then classify_ident := TK_FALSE
+    else if (tok_id[0]='m') and (tok_id[1]='a') and (tok_id[2]='t') and (tok_id[3]='c') and (tok_id[4]='h') then classify_ident := TK_MATCH
   end end;
 procedure crlf;
 begin write(chr(13)); write(chr(10)) end;
@@ -194,51 +207,87 @@ begin skip_ws_and_comments;
   if c = '&' then begin pos := pos+1;
     if (pos < src_len) and (src[pos] = '&') then begin tok := TK_ANDAND; pos := pos+1 end else tok := TK_ERROR; exit end;
   if c = '|' then begin pos := pos+1;
-    if (pos < src_len) and (src[pos] = '|') then begin tok := TK_OROR; pos := pos+1 end else tok := TK_ERROR; exit end;
+    if (pos < src_len) and (src[pos] = '|') then begin tok := TK_OROR; pos := pos+1 end else tok := TK_PIPE; exit end;
   tok := TK_ERROR; pos := pos+1 end;
 
 { === AST constructors === }
 function mk_int(v: integer): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_INT; n^.ival := v; n^.op := 0; n^.noff := 0; n^.nlen := 0;
-  n^.left := nil; n^.right := nil; n^.extra := nil; mk_int := n end;
+  n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_int := n end;
 function mk_nil_expr: PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_NIL; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
-  n^.left := nil; n^.right := nil; n^.extra := nil; mk_nil_expr := n end;
+  n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_nil_expr := n end;
 function mk_bool(v: integer): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_BOOL; n^.ival := v; n^.op := 0; n^.noff := 0; n^.nlen := 0;
-  n^.left := nil; n^.right := nil; n^.extra := nil; mk_bool := n end;
+  n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_bool := n end;
 function mk_var_node: PExpr;
 var n: PExpr; off: integer;
 begin off := pool_intern; new(n); n^.kind := EK_VAR; n^.ival := 0; n^.op := 0;
   n^.noff := off; n^.nlen := tok_id_len; n^.left := nil; n^.right := nil; n^.extra := nil;
-  mk_var_node := n end;
+  n^.pat := nil; mk_var_node := n end;
 function mk_binop(o: integer; l, r: PExpr): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_BINOP; n^.ival := 0; n^.op := o; n^.noff := 0; n^.nlen := 0;
-  n^.left := l; n^.right := r; n^.extra := nil; mk_binop := n end;
+  n^.left := l; n^.right := r; n^.extra := nil; n^.pat := nil; mk_binop := n end;
 function mk_unary(o: integer; operand: PExpr): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_UNARY; n^.ival := 0; n^.op := o; n^.noff := 0; n^.nlen := 0;
-  n^.left := operand; n^.right := nil; n^.extra := nil; mk_unary := n end;
+  n^.left := operand; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_unary := n end;
 function mk_if(cond, then_br, else_br: PExpr): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_IF; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
-  n^.left := cond; n^.right := then_br; n^.extra := else_br; mk_if := n end;
+  n^.left := cond; n^.right := then_br; n^.extra := else_br; n^.pat := nil; mk_if := n end;
 function mk_let_node(val_e, body_e: PExpr): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_LET; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
-  n^.left := val_e; n^.right := body_e; n^.extra := nil; mk_let_node := n end;
+  n^.left := val_e; n^.right := body_e; n^.extra := nil; n^.pat := nil; mk_let_node := n end;
 function mk_fun_node(body_e: PExpr): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_FUN; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
-  n^.left := body_e; n^.right := nil; n^.extra := nil; mk_fun_node := n end;
+  n^.left := body_e; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_fun_node := n end;
 function mk_app(fn, arg: PExpr): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_APP; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
-  n^.left := fn; n^.right := arg; n^.extra := nil; mk_app := n end;
+  n^.left := fn; n^.right := arg; n^.extra := nil; n^.pat := nil; mk_app := n end;
+function mk_match(scrutinee, first_arm: PExpr): PExpr;
+var n: PExpr;
+begin new(n); n^.kind := EK_MATCH; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+  n^.left := scrutinee; n^.right := first_arm; n^.extra := nil; n^.pat := nil; mk_match := n end;
+function mk_arm(p: PPat; body: PExpr): PExpr;
+var n: PExpr;
+begin new(n); n^.kind := EK_MATCH_ARM; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+  n^.left := body; n^.right := nil; n^.extra := nil; n^.pat := p; mk_arm := n end;
+
+function mk_pat_wildcard: PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_WILDCARD; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_wildcard := p end;
+function mk_pat_int(v: integer): PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_INT; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_int := p end;
+function mk_pat_bool(v: integer): PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_BOOL; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_bool := p end;
+function mk_pat_var(off, len: integer): PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_VAR; p^.ival := 0; p^.noff := off; p^.nlen := len; p^.sub1 := nil; p^.sub2 := nil; mk_pat_var := p end;
+function mk_pat_nil: PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_NIL; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_nil := p end;
+function mk_pat_cons(head_p, tail_p: PPat): PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_CONS; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := head_p; p^.sub2 := tail_p; mk_pat_cons := p end;
+function mk_pat_pair(a, b: PPat): PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_PAIR; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := a; p^.sub2 := b; mk_pat_pair := p end;
+function mk_pat_none: PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_NONE; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_none := p end;
+function mk_pat_some(sub: PPat): PPat;
+var p: PPat;
+begin new(p); p^.pk := PK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := sub; p^.sub2 := nil; mk_pat_some := p end;
 
 { === Parser === }
 function parse_expr: PExpr; forward;

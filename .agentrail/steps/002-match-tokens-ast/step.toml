@@ -1,6 +1,6 @@
 number = 2
 slug = "match-tokens-ast"
-status = "pending"
+status = "in-progress"
 description = "Add tokens and AST nodes for pattern matching -- structure only, no parsing/e..."
 role = "production"
 context_files = []
