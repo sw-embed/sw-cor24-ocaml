@@ -28,7 +28,7 @@ if [ -z "$COR24_RUN" ]; then echo "error: cor24-run not found" >&2; exit 1; fi
 
 SRC="$REPO_ROOT/src/ocaml.pas"
 BUILD_DIR="$REPO_ROOT/build"
-MAX_INSTRS="${1:-500000000}"
+MAX_INSTRS="${1:-1000000000}"
 
 mkdir -p "$BUILD_DIR"
 

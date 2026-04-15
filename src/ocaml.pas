@@ -12,13 +12,17 @@ const
   TK_PLUS=30; TK_MINUS=31; TK_STAR=32; TK_SLASH=33;
   TK_EQ=34; TK_NEQ=35; TK_LT=36; TK_GT=37; TK_LE=38; TK_GE=39;
   TK_ANDAND=40; TK_OROR=41; TK_ARROW=42;
-  TK_LPAREN=50; TK_RPAREN=51; TK_SEMI=52; TK_ERROR=99;
+  TK_LPAREN=50; TK_RPAREN=51; TK_SEMI=52;
+  TK_LBRACKET=53; TK_RBRACKET=54; TK_COLONCOLON=55;
+  TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
   EK_IF=6; EK_LET=7; EK_FUN=8; EK_APP=9;
+  EK_NIL=10;
   OP_ADD=30; OP_SUB=31; OP_MUL=32; OP_DIV=33; OP_MOD=20;
   OP_EQ=34; OP_NEQ=35; OP_LT=36; OP_GT=37;
   OP_LE=38; OP_GE=39; OP_AND=40; OP_OR=41; OP_NOT=19;
+  OP_CONS=55;
   NAME_POOL_MAX=2048;
   VK_INT=1; VK_BOOL=2; VK_CLOSURE=3; VK_UNIT=4;
   VK_NIL=5; VK_CONS=6;
@@ -59,6 +63,9 @@ var
   putc_ch: char;
   wildcard_noff: integer; wildcard_nlen: integer;
   nil_noff: integer; nil_nlen: integer;
+  hd_noff: integer; hd_nlen: integer;
+  tl_noff: integer; tl_nlen: integer;
+  isempty_noff: integer; isempty_nlen: integer;
   ast: PExpr; result: PVal;
 
 function pool_intern: integer;
@@ -154,6 +161,14 @@ begin skip_ws_and_comments;
   if c = '(' then begin tok := TK_LPAREN; pos := pos+1; exit end;
   if c = ')' then begin tok := TK_RPAREN; pos := pos+1; exit end;
   if c = ';' then begin tok := TK_SEMI; pos := pos+1; exit end;
+  if c = '[' then begin tok := TK_LBRACKET; pos := pos+1; exit end;
+  if c = ']' then begin tok := TK_RBRACKET; pos := pos+1; exit end;
+  if c = ':' then begin
+    pos := pos+1;
+    if (pos < src_len) and (src[pos] = ':') then begin tok := TK_COLONCOLON; pos := pos+1 end
+    else tok := TK_ERROR;
+    exit
+  end;
   if c = '=' then begin tok := TK_EQ; pos := pos+1; exit end;
   if c = '-' then begin pos := pos+1;
     if (pos < src_len) and (src[pos] = '>') then begin tok := TK_ARROW; pos := pos+1 end else tok := TK_MINUS; exit end;
@@ -174,6 +189,10 @@ function mk_int(v: integer): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_INT; n^.ival := v; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := nil; n^.right := nil; n^.extra := nil; mk_int := n end;
+function mk_nil_expr: PExpr;
+var n: PExpr;
+begin new(n); n^.kind := EK_NIL; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+  n^.left := nil; n^.right := nil; n^.extra := nil; mk_nil_expr := n end;
 function mk_bool(v: integer): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_BOOL; n^.ival := v; n^.op := 0; n^.noff := 0; n^.nlen := 0;
@@ -211,9 +230,10 @@ begin new(n); n^.kind := EK_APP; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen
 { === Parser === }
 function parse_expr: PExpr; forward;
 function parse_seq: PExpr; forward;
+function parse_list_elements: PExpr; forward;
 function parse_fun_params: PExpr; forward;
 function is_atom_start: boolean;
-begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) end;
+begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) end;
 function parse_atom: PExpr;
 var e: PExpr;
 begin parse_atom := nil;
@@ -225,6 +245,15 @@ begin parse_atom := nil;
     if tok=TK_RPAREN then begin parse_atom := mk_int(0); lex_next; exit end;
     e := parse_seq; if tok=TK_RPAREN then lex_next else parse_error := true;
     parse_atom := e; exit end;
+  if tok=TK_LBRACKET then begin
+    lex_next;
+    if tok=TK_RBRACKET then begin parse_atom := mk_nil_expr; lex_next; exit end;
+    { parse [e1; e2; ...; en] as cons(e1, cons(e2, ..., cons(en, nil))) }
+    e := parse_list_elements;
+    if tok=TK_RBRACKET then lex_next else parse_error := true;
+    parse_atom := e;
+    exit
+  end;
   parse_error := true end;
 function parse_app: PExpr;
 var fn, arg: PExpr;
@@ -251,11 +280,24 @@ begin e := parse_term;
     if tok=TK_PLUS then o := OP_ADD else o := OP_SUB;
     lex_next; r := parse_term; e := mk_binop(o, e, r) end;
   parse_arith := e end;
+function parse_cons: PExpr; forward;
+function parse_cons: PExpr;
+{ Right-associative :: operator }
+var e, r: PExpr;
+begin
+  e := parse_arith;
+  if (tok = TK_COLONCOLON) and not parse_error then begin
+    lex_next;
+    r := parse_cons;
+    parse_cons := mk_binop(OP_CONS, e, r)
+  end else
+    parse_cons := e
+end;
 function parse_compare: PExpr;
 var e, r: PExpr; o: integer;
-begin e := parse_arith;
+begin e := parse_cons;
   while ((tok=TK_EQ) or (tok=TK_NEQ) or (tok=TK_LT) or (tok=TK_GT) or (tok=TK_LE) or (tok=TK_GE))
-    and not parse_error do begin o := tok; lex_next; r := parse_arith; e := mk_binop(o, e, r) end;
+    and not parse_error do begin o := tok; lex_next; r := parse_cons; e := mk_binop(o, e, r) end;
   parse_compare := e end;
 function parse_logic: PExpr;
 var e, r: PExpr; o: integer;
@@ -321,6 +363,21 @@ begin
   parse_seq := e
 end;
 
+function parse_list_elements: PExpr;
+{ Parse e1 ; e2 ; ... ; en and build cons(e1, cons(e2, ..., cons(en, nil))) }
+var e, rest: PExpr;
+begin
+  parse_list_elements := nil;
+  e := parse_expr;
+  if parse_error then exit;
+  if tok = TK_SEMI then begin
+    lex_next;
+    rest := parse_list_elements;
+    parse_list_elements := mk_binop(OP_CONS, e, rest)
+  end else
+    parse_list_elements := mk_binop(OP_CONS, e, mk_nil_expr)
+end;
+
 { === Evaluator === }
 function names_equal(o1, l1, o2, l2: integer): boolean;
 var j: integer; eq: boolean;
@@ -378,6 +435,27 @@ begin nil_noff := name_pool_len;
   name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
   nil_nlen := 3 end;
+procedure intern_list_ops;
+begin
+  hd_noff := name_pool_len;
+  name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  hd_nlen := 2;
+  tl_noff := name_pool_len;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  tl_nlen := 2;
+  isempty_noff := name_pool_len;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 's'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'm'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'p'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'y'; name_pool_len := name_pool_len+1;
+  isempty_nlen := 8
+end;
 procedure intern_board;
 begin
   set_led_noff := name_pool_len;
@@ -428,6 +506,7 @@ begin eval_expr := nil;
   if e = nil then begin eval_error := true; exit end;
   if e^.kind = EK_INT then begin eval_expr := mk_val_int(e^.ival); exit end;
   if e^.kind = EK_BOOL then begin eval_expr := mk_val_bool(e^.ival); exit end;
+  if e^.kind = EK_NIL then begin eval_expr := mk_val_nil; exit end;
   if e^.kind = EK_VAR then begin
     if names_equal(e^.noff, e^.nlen, print_int_noff, print_int_nlen) then begin
       eval_expr := mk_val_closure(print_int_noff, print_int_nlen, nil, nil); exit end;
@@ -443,11 +522,20 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(putc_noff, putc_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, nil_noff, nil_nlen) then begin
       eval_expr := mk_val_nil; exit end;
+    if names_equal(e^.noff, e^.nlen, hd_noff, hd_nlen) then begin
+      eval_expr := mk_val_closure(hd_noff, hd_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, tl_noff, tl_nlen) then begin
+      eval_expr := mk_val_closure(tl_noff, tl_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, isempty_noff, isempty_nlen) then begin
+      eval_expr := mk_val_closure(isempty_noff, isempty_nlen, nil, nil); exit end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
     lv := eval_expr(l, env); rv := eval_expr(r, env);
     if eval_error then exit;
+    if e^.op = OP_CONS then begin
+      eval_expr := mk_val_cons(lv, rv); exit
+    end;
     a := lv^.ival; b := rv^.ival; res := 0;
     if e^.op=OP_ADD then res := a+b
     else if e^.op=OP_SUB then res := a-b
@@ -505,6 +593,16 @@ begin eval_expr := nil;
           if av^.ival = 10 then crlf
           else write(chr(av^.ival));
           eval_expr := mk_val_unit; exit end;
+        if names_equal(fv^.noff, fv^.nlen, hd_noff, hd_nlen) then begin
+          if av^.vk <> VK_CONS then begin eval_error := true; exit end;
+          eval_expr := av^.head; exit end;
+        if names_equal(fv^.noff, fv^.nlen, tl_noff, tl_nlen) then begin
+          if av^.vk <> VK_CONS then begin eval_error := true; exit end;
+          eval_expr := av^.tail; exit end;
+        if names_equal(fv^.noff, fv^.nlen, isempty_noff, isempty_nlen) then begin
+          if av^.vk = VK_NIL then eval_expr := mk_val_bool(1)
+          else eval_expr := mk_val_bool(0);
+          exit end;
         eval_error := true; exit end;
       bd := fv^.body; ce := fv^.cenv;
       ne := env_extend(ce, fv^.noff, fv^.nlen, av);
@@ -519,6 +617,7 @@ begin
   intern_board;
   intern_wildcard;
   intern_nil;
+  intern_list_ops;
   while not eof do begin
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);
