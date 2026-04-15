@@ -1,0 +1,8 @@
+number = 12
+slug = "string-conversion-builtins"
+status = "pending"
+description = "Add string_of_int and int_of_string built-ins. Depends on the string-values s..."
+role = "production"
+context_files = []
+created_at = "2026-04-15T10:44:33"
+commits = []

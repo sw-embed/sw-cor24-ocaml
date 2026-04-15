@@ -1,0 +1,10 @@
+number = 11
+slug = "list-higher-order-builtins"
+status = "pending"
+description = """
+Add List.map, List.filter, List.fold_left, List.init, List.iter as builtins.
+..."""
+role = "production"
+context_files = []
+created_at = "2026-04-15T10:44:33"
+commits = []

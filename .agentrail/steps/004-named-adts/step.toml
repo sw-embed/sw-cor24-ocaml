@@ -1,0 +1,8 @@
+number = 4
+slug = "named-adts"
+status = "pending"
+description = "Add named algebraic data types (enum-style) for demos like 'type color = Red ..."
+role = "production"
+context_files = []
+created_at = "2026-04-15T10:43:22"
+commits = []

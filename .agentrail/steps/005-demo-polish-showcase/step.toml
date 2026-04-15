@@ -1,0 +1,11 @@
+number = 5
+slug = "demo-polish-showcase"
+status = "pending"
+description = """
+Create the final showcase demo combining all features from the saga.
+
+Create ..."""
+role = "production"
+context_files = []
+created_at = "2026-04-15T10:43:22"
+commits = []

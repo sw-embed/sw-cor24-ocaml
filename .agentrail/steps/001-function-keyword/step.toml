@@ -1,0 +1,8 @@
+number = 1
+slug = "function-keyword"
+status = "pending"
+description = "Add the 'function' keyword as syntactic sugar for 'fun __arg__ -> match __arg..."
+role = "production"
+context_files = []
+created_at = "2026-04-15T10:43:22"
+commits = []

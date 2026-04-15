@@ -1,0 +1,8 @@
+number = 13
+slug = "demo-all-canonical"
+status = "pending"
+description = "Final showcase demo running ALL canonical demos from docs/possible-demos.txt...."
+role = "production"
+context_files = []
+created_at = "2026-04-15T10:44:59"
+commits = []

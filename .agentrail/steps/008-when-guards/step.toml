@@ -1,0 +1,8 @@
+number = 8
+slug = "when-guards"
+status = "pending"
+description = "Add 'when' guards to pattern match arms: 'match x with n when n < 0 -> -n | n..."
+role = "production"
+context_files = []
+created_at = "2026-04-15T10:44:33"
+commits = []
