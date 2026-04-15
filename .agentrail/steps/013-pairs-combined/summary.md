@@ -1,0 +1,1 @@
+Added pair values and syntax. (a, b) tuples work with fst/snd. Pretty-prints (a, b). Nested with lists. 31 tests.

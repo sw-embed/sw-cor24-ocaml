@@ -21,14 +21,25 @@ an AOT-compiled native COR24 binary.
 - Semicolon sequencing: `e1; e2`
 - Negative literals: `-42`
 - Comments: `(* ... *)` (nestable)
+- **Lists**: `[]`, `[1; 2; 3]`, cons `1 :: xs`, pretty-printed
+- **Pairs**: `(a, b)` tuples, pretty-printed
+- **Qualified names**: `List.length`, `List.rev` (dotted identifiers)
 
 ## Built-in Primitives
 
+**Output**
 - `print_int : int -> unit` -- print integer to UART
 - `putc : int -> unit` -- print character (by ordinal)
-- `set_led : bool -> unit` -- set COR24 LED state
-- `led_on : unit -> unit`, `led_off : unit -> unit` -- LED helpers
+
+**Board I/O**
+- `set_led : bool -> unit`, `led_on`, `led_off` -- COR24 LED
 - `switch : unit -> bool` -- read COR24 switch
+
+**Lists and pairs**
+- `nil` -- empty list value
+- `hd`, `tl`, `is_empty` -- list operations
+- `fst`, `snd` -- pair accessors
+- `List.length`, `List.rev`, `List.hd`, `List.tl`, `List.is_empty`
 
 ## Quick Start
 
@@ -44,8 +55,33 @@ just test                     # run 27 regression tests
 just repl          # launch interactive REPL (terminal mode)
 just demo-repl     # run scripted REPL session
 just demo          # one-shot: print_int 42
-just demo-fact     # one-shot: print_int (fact 5) -> 120
+just demo-fact     # factorial
 just demo-led      # LED toggle demo
+just demo-lists    # lists, pairs, sum/length/map
+```
+
+### Canonical OCaml Demos
+
+```ocaml
+(* Factorial *)
+let rec fact = fun n -> if n = 0 then 1 else n * fact (n - 1) in fact 5
+(* 120 *)
+
+(* Sum of a list *)
+let rec sum = fun l -> if is_empty l then 0 else hd l + sum (tl l) in sum [1;2;3;4;5]
+(* 15 *)
+
+(* Map doubling *)
+let rec map = fun f l -> if is_empty l then [] else (f (hd l)) :: (map f (tl l)) in map (fun x -> x * 2) [1;2;3]
+(* [2; 4; 6] *)
+
+(* Pairs *)
+let p = (3, 4) in fst p * fst p + snd p * snd p
+(* 25 *)
+
+(* Qualified names *)
+List.rev [1; 2; 3; 4; 5]
+(* [5; 4; 3; 2; 1] *)
 ```
 
 ### Interactive Session Example
@@ -71,8 +107,8 @@ PVM OK
 
 ## Status
 
-All Phase 0 + Phase 1 features working in REPL mode. 27 reg-rs tests passing.
-Lists, pairs, and pattern matching planned for Phase 2 (in progress).
+Phase 0 (core), Phase 1 (I/O), and Phase 2 (lists + pairs) complete.
+32 reg-rs tests passing. Pattern matching planned next.
 
 ## Documentation
 

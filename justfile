@@ -49,6 +49,10 @@ demo-fact:
 demo-led:
     @./scripts/run-ocaml.sh tests/demo_led_blink.ml
 
+# Run lists and pairs demo (sum, length, map, fst/snd, List.rev)
+demo-lists:
+    @./scripts/run-ocaml.sh tests/demo_lists_pairs.ml
+
 # Run a REPL session from a file (one expression per line)
 repl-session file:
     @./scripts/run-ocaml.sh {{file}}
