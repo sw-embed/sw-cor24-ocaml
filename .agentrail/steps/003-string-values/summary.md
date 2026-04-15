@@ -1,0 +1,1 @@
+let-destructuring works for tuples, cons, list literals, Some. Fast path preserved for plain ident bindings. 36 tests.

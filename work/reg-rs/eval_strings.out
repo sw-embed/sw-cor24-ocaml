@@ -1,0 +1,13 @@
+> "Hello"
+"Hello"
+> "OCaml" ^ " rocks"
+"OCaml rocks"
+> print_endline "Hello, World!"
+Hello, World!
+> String.length "abcde"
+5
+> String.length ""
+0
+> "x" ^ "y" ^ "z"
+"xyz"
+> let greeting = "Hello, " ^ "World!" in print_endline greetingHello, World!

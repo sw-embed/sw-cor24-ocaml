@@ -1,6 +1,6 @@
 number = 4
 slug = "named-adts"
-status = "pending"
+status = "blocked"
 description = "Add named algebraic data types (enum-style) for demos like 'type color = Red ..."
 role = "production"
 context_files = []
