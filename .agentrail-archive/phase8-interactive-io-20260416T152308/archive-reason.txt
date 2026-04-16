@@ -1,0 +1,1 @@
+phase8-interactive-io: getc + read_line + string equality + echo/guess/text-adventure demos all delivered
