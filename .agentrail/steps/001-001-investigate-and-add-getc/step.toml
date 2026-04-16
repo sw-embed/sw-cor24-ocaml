@@ -1,0 +1,9 @@
+number = 1
+slug = "001-investigate-and-add-getc"
+status = "in-progress"
+description = "Investigate stdin/UART input support in the COR24 toolchain and add a getc : ..."
+role = "production"
+context_files = []
+created_at = "2026-04-16T09:42:34"
+task_type = "production"
+commits = []

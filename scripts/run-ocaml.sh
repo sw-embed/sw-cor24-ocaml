@@ -5,6 +5,11 @@
 # Usage: ./scripts/run-ocaml.sh <file.ml> [max_instructions]
 #
 # Requires build/ocaml.p24m and build/pvm.bin (run ./scripts/build.sh first)
+#
+# If the env var OCAML_STDIN is set, its contents are appended to the UART
+# input buffer after the source's EOT terminator. This feeds runtime
+# getc/read_line calls (used by interactive demos) without blocking on a
+# live terminal.
 set -euo pipefail
 
 ML="${1:?Usage: $0 <file.ml> [max_instructions]}"
@@ -26,10 +31,12 @@ fi
 CODE_PTR=$(cat "$BUILD_DIR/code_ptr_addr.txt")
 ML_INPUT=$(cat "$ML")
 
+UART_INPUT="${ML_INPUT}"$'\x04'"${OCAML_STDIN:-}"
+
 "$COR24_RUN" --load-binary "$BUILD_DIR/pvm.bin@0" \
   --load-binary "$BUILD_DIR/ocaml.p24m@0x010000" \
   --patch "0x${CODE_PTR}=0x010000" \
-  --entry 0 -u "${ML_INPUT}"$'\x04' --speed 0 -n "$MAX_INSTRS" 2>&1 | \
+  --entry 0 -u "${UART_INPUT}" --speed 0 -n "$MAX_INSTRS" 2>&1 | \
   awk '
     /^UART output:/ { in_out = 1; sub(/^UART output: /, ""); }
     /^Executed / { in_out = 0 }

@@ -1,0 +1,2 @@
+command = "bash -c \"OCAML_STDIN=Z ./scripts/run-ocaml.sh tests/eval_getc_echo.ml\""
+exit_code = 0

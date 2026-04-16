@@ -57,6 +57,10 @@ demo-lists:
 demo-match:
     @./scripts/run-ocaml.sh tests/demo_patterns.ml
 
+# Smoke test getc: echo one character from UART input via putc
+demo-echo:
+    @OCAML_STDIN='Z' ./scripts/run-ocaml.sh tests/eval_getc_echo.ml
+
 # Run a REPL session from a file (one expression per line)
 repl-session file:
     @./scripts/run-ocaml.sh {{file}}

@@ -83,6 +83,8 @@ var
   switch_noff: integer; switch_nlen: integer;
   putc_noff: integer; putc_nlen: integer;
   putc_ch: char;
+  getc_noff: integer; getc_nlen: integer;
+  getc_ch: char;
   wildcard_noff: integer; wildcard_nlen: integer;
   nil_noff: integer; nil_nlen: integer;
   hd_noff: integer; hd_nlen: integer;
@@ -1158,7 +1160,13 @@ begin
   name_pool[name_pool_len] := 'u'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
-  putc_nlen := 4
+  putc_nlen := 4;
+  getc_noff := name_pool_len;
+  name_pool[name_pool_len] := 'g'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
+  getc_nlen := 4
 end;
 function try_match(p: PPat; v: PVal; env: PEnv): PEnv; forward;
 function try_match(p: PPat; v: PVal; env: PEnv): PEnv;
@@ -1389,6 +1397,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(switch_noff, switch_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, putc_noff, putc_nlen) then begin
       eval_expr := mk_val_closure(putc_noff, putc_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, getc_noff, getc_nlen) then begin
+      eval_expr := mk_val_closure(getc_noff, getc_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, nil_noff, nil_nlen) then begin
       eval_expr := mk_val_nil; exit end;
     if names_equal(e^.noff, e^.nlen, hd_noff, hd_nlen) then begin
@@ -1541,6 +1551,16 @@ begin eval_expr := nil;
           if av^.ival = 10 then crlf
           else write(chr(av^.ival));
           eval_expr := mk_val_unit; exit end;
+        if names_equal(fv^.noff, fv^.nlen, getc_noff, getc_nlen) then begin
+          read(getc_ch);
+          { Pascal runtime's eof() pre-reads one byte into its lookahead buffer.
+            When the lexer exits on the source's 0x04 EOT terminator, that EOT
+            is often already cached in the lookahead — so the first runtime
+            read(ch) returns 0x04 instead of the user's input byte. Skip it.
+            This only fires for the first getc after source ingestion; later
+            getc calls bypass lookahead and go straight to sys_getc. }
+          if getc_ch = chr(4) then read(getc_ch);
+          eval_expr := mk_val_int(ord(getc_ch)); exit end;
         if names_equal(fv^.noff, fv^.nlen, hd_noff, hd_nlen) then begin
           if av^.vk <> VK_CONS then begin eval_error := true; exit end;
           eval_expr := av^.head; exit end;
