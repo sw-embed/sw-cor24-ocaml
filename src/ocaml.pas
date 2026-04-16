@@ -1486,6 +1486,22 @@ begin eval_expr := nil;
       eval_expr := mk_val_string(a, lv^.nlen + rv^.nlen);
       exit
     end;
+    if ((e^.op = OP_EQ) or (e^.op = OP_NEQ))
+       and (lv^.vk = VK_STRING) and (rv^.vk = VK_STRING) then begin
+      if lv^.nlen <> rv^.nlen then res := 0
+      else begin
+        res := 1; a := 0;
+        while a < lv^.nlen do begin
+          if string_pool[lv^.noff + a] <> string_pool[rv^.noff + a] then begin
+            res := 0; a := lv^.nlen
+          end else a := a + 1
+        end
+      end;
+      if e^.op = OP_NEQ then begin
+        if res = 1 then res := 0 else res := 1
+      end;
+      eval_expr := mk_val_bool(res); exit
+    end;
     a := lv^.ival; b := rv^.ival; res := 0;
     if e^.op=OP_ADD then res := a+b
     else if e^.op=OP_SUB then res := a-b

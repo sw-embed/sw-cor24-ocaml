@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_string_eq.ml"
+exit_code = 0

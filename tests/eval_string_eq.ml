@@ -1,0 +1,8 @@
+"abc" = "abc"
+"abc" = "abd"
+"abc" = "abcd"
+"" = ""
+"hello" <> "world"
+"same" <> "same"
+if "quit" = "quit" then print_endline "yes" else print_endline "no"
+if "quit" = "keep" then print_endline "yes" else print_endline "no"
