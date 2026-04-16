@@ -1,0 +1,1 @@
+Diagnosed fib trap root cause: PVM call-stack overflow. op_call/op_calln/op_enter in pvm.s advance csp without bounds-checking. eval_expr has 15 locals (57 bytes/frame), call_stack holds ~26 frames, but fib 10 needs ~40+. csp overflows into eval_stack, corrupting return PCs → TRAP 4. Fix: add csp < eval_stack check (VM-only, no ocaml.pas growth).

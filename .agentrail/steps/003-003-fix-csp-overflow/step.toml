@@ -1,0 +1,8 @@
+number = 3
+slug = "003-fix-csp-overflow"
+status = "in-progress"
+description = "Fix the PVM call-stack overflow that causes fib 10+ to TRAP 4. In vendor/sw-p..."
+role = "legacy"
+context_files = []
+created_at = "2026-04-15T18:40:55"
+commits = []

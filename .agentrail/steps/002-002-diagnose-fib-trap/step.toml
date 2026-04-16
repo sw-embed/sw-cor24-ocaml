@@ -1,8 +1,9 @@
 number = 2
 slug = "002-diagnose-fib-trap"
-status = "in-progress"
+status = "completed"
 description = "Diagnose the fib trap. Step 001 established: fib 9 hits a clean EVAL ERROR; f..."
 role = "legacy"
 context_files = []
 created_at = "2026-04-15T18:16:54"
-commits = []
+completed_at = "2026-04-15T18:40:55"
+commits = ["812f74b46b4ad97067880e7a6c1362832b994d9b"]
