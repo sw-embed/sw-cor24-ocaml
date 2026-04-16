@@ -1,0 +1,1 @@
+Added read_line : unit -> string built-in on top of getc. Accumulates bytes into string_pool until LF/CR, handles backspace + leading EOT quirk. Supporting: eval_read_line_echo regression test, demo-readline justfile target, docs updated with CR/LF edge-case note.

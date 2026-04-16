@@ -1,6 +1,6 @@
 number = 2
 slug = "002-add-read-line"
-status = "in-progress"
+status = "completed"
 description = """
 Build read_line : unit -> string on top of getc.
 
@@ -10,5 +10,6 @@ Add a read_line b..."""
 role = "legacy"
 context_files = []
 created_at = "2026-04-16T11:50:46"
+completed_at = "2026-04-16T13:15:35"
 task_type = "production"
-commits = []
+commits = ["41d1373dbda4a186fe91ac8b2b83345ea0b2544a"]

@@ -1,0 +1,11 @@
+{
+  "task_type": "production",
+  "state": {
+    "number": 2,
+    "step": "002-add-read-line"
+  },
+  "action": "read step 001 summary + docs; grep/read ocaml.pas for getc, mk_val_string, intern_board, lex_init; Edit ocaml.pas (globals + intern + lookup + apply dispatch); build.sh; register reg-rs test; update justfile + docs/stdin-and-getc.md; full test suite (4 pre-existing lex failures only)",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-16T13:15:35"
+}
