@@ -1,0 +1,8 @@
+number = 5
+slug = "005-interactive-io-demos-retry"
+status = "in-progress"
+description = "Retry of aborted step 003 now that string equality works. Build the two smoke..."
+role = "legacy"
+context_files = []
+created_at = "2026-04-16T13:57:47"
+commits = []

@@ -69,3 +69,51 @@ cost us that byte permanently.
 Run via `just demo-echo` (feeds `Z`, prints `Z`) and `just demo-readline`
 (feeds `hello\n`, prints `hello`). Regression tests:
 `work/reg-rs/eval_getc_echo.rgt`, `work/reg-rs/eval_read_line_echo.rgt`.
+
+## Interactive loops
+
+Once `read_line` and string `(=)` are both available, an interactive
+REPL-style loop is a single recursive function. Two canonical patterns:
+
+**Echo-until-sentinel** (`tests/demo_echo_loop.ml`): read a line, stop
+on `"quit"`, otherwise print it and recurse.
+
+    let rec loop = fun u ->
+      let s = read_line () in
+      if s = "quit" then print_endline "bye"
+      else (print_endline s; loop ())
+    in loop ()
+
+The `fun u ->` is a dummy unit parameter — the parser's `let rec`
+binding wants a function value, and a zero-arg `fun () -> ...` is not
+currently supported, so we pass `()` through an ignored name.
+
+**Read-and-compare** (`tests/demo_guess.ml`): parse input with
+`int_of_string`, branch on the parsed value.
+
+    let rec loop = fun u ->
+      let g = int_of_string (read_line ()) in
+      if g = 42 then print_endline "correct!"
+      else if g < 42 then (print_endline "too low"; loop ())
+      else (print_endline "too high"; loop ())
+    in loop ()
+
+`int_of_string` raises EVAL ERROR on non-numeric input, so the driver
+must feed well-formed integers; the demo has no recovery path.
+
+Run: `just demo-echo-loop`, `just demo-guess`. Regression tests:
+`work/reg-rs/demo_echo_loop.rgt`, `work/reg-rs/demo_guess.rgt`.
+
+## What's still missing for richer interactive programs
+
+The echo/guess demos are deliberately small. A text-adventure-class
+program additionally wants:
+
+- Lexicographic ordering on strings (`<`, `<=`, etc.) — currently only
+  `(=)` and `(<>)` work on `VK_STRING`.
+- Char ops: splitting a string into tokens, uppercasing, comparing one
+  char of a line. No `String.get`, `String.length`, or `Char.*` yet.
+- Graceful `int_of_string` (returning `int option` instead of raising).
+
+These aren't blockers for simple interactive loops but are the
+next-most-likely things a demo will reach for.

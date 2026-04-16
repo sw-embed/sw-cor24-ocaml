@@ -1,0 +1,2 @@
+command = '''bash -c "OCAML_STDIN=$'hello\nworld\nquit\n' ./scripts/run-ocaml.sh tests/demo_echo_loop.ml"'''
+exit_code = 0

@@ -1,0 +1,2 @@
+command = '''bash -c "OCAML_STDIN=$'10\n80\n42\n' ./scripts/run-ocaml.sh tests/demo_guess.ml"'''
+exit_code = 0

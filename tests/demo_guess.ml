@@ -1,0 +1,1 @@
+let rec loop = fun u -> let g = int_of_string (read_line ()) in if g = 42 then print_endline "correct!" else if g < 42 then (print_endline "too low"; loop ()) else (print_endline "too high"; loop ()) in loop ()
