@@ -1,0 +1,1 @@
+Adopt upstream sw-cor24-pcode fix for call-stack overflow (issue #14, merged as commit f2db2d1). Bump commit pin in vendor/sw-pcode/v0.1.0/version.json, run vendor-fetch.sh, rebuild, verify fib 1..11 all return correct values and deep recursion produces TRAP 2, add tests/canonical_fib.ml regression test with reg-rs baseline.

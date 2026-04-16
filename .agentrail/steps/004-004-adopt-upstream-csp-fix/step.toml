@@ -1,0 +1,8 @@
+number = 4
+slug = "004-adopt-upstream-csp-fix"
+status = "in-progress"
+description = "Adopt upstream sw-cor24-pcode fix for call-stack overflow (issue #14, merged ..."
+role = "production"
+context_files = []
+created_at = "2026-04-16T08:55:54"
+commits = []
