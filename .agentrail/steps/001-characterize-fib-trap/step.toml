@@ -1,6 +1,6 @@
 number = 1
 slug = "characterize-fib-trap"
-status = "pending"
+status = "in-progress"
 description = "Characterize the fib trap. No source code changes in this step — pure inves..."
 role = "production"
 context_files = []
