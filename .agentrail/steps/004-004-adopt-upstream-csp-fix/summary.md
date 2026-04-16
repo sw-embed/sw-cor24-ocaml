@@ -1,0 +1,1 @@
+Bumped sw-pcode vendor pin e5c8f03→f2db2d1, re-fetched, verified fib 1..11 all return correct values (fib 10 → 55), deep recursion produces clean TRAP 2 instead of TRAP 4. Added tests/canonical_fib.ml regression + reg-rs baseline (55/59 tests pass; 4 lex_* failures pre-exist from unrelated p24p.s bump).
