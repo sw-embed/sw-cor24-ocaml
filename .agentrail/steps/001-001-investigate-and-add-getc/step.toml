@@ -1,9 +1,10 @@
 number = 1
 slug = "001-investigate-and-add-getc"
-status = "in-progress"
+status = "completed"
 description = "Investigate stdin/UART input support in the COR24 toolchain and add a getc : ..."
 role = "production"
 context_files = []
 created_at = "2026-04-16T09:42:34"
+completed_at = "2026-04-16T11:50:46"
 task_type = "production"
-commits = []
+commits = ["f932796247e1bf9b67b1e7df53c32630800ed74b"]

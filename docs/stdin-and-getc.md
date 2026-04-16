@@ -1,13 +1,20 @@
-# Runtime stdin and `getc`
+# Runtime stdin, `getc`, and `read_line`
 
-## The primitive
+## The primitives
 
 `getc : unit -> int` reads one byte from UART and returns it as an int
-(0..255). It is the foundation for all interactive input — `read_line`,
-calculators, text adventures, etc. are built on top.
+(0..255). It is the foundation for all interactive input.
 
-Source: `src/ocaml.pas` — interned in `intern_board`, dispatched in
-`eval_expr`'s apply block.
+`read_line : unit -> string` reads bytes until a newline (LF, 0x0A) or
+carriage return (CR, 0x0D) and returns the accumulated bytes as a
+string. Neither terminator is included. Backspace (0x08 or 0x7F) erases
+the last char of the in-progress line. Each non-terminator byte is
+echoed to UART so a live terminal user sees their typing — the echo is
+harmless for automated drivers feeding input via `OCAML_STDIN`.
+
+Source: `src/ocaml.pas` — both interned in `intern_board`, dispatched in
+`eval_expr`'s apply block. `read_line` accumulates into `string_pool`
+(the same store used by `print_endline`, `string_of_int`, etc.).
 
 ## The wire: source and runtime share a UART
 
@@ -33,17 +40,32 @@ loop sees the source's 0x04 terminator, 0x04 is already sitting in the
 lookahead — and the very first runtime `read(ch)` call (i.e., the first
 `getc`) returns 0x04 instead of the user's first byte.
 
-Fix: `getc` discards a leading 0x04 and reads again. This only fires on
-the first `getc` after source ingestion — later calls bypass the
-lookahead and go straight to `sys_getc`, so they behave normally.
+Fix: `getc` (and `read_line`, on its very first byte) discards a leading
+0x04 and reads again. This only fires on the first runtime read after
+source ingestion — later reads bypass the lookahead and go straight to
+`sys_getc`, so they behave normally.
 
 Consequence: the literal byte 0x04 cannot be a user's very first input
 byte (a second `getc` would block waiting). This is harmless for any
 realistic use case (calculators, chatbots, adventures).
 
-## Smoke test
+## CR vs LF in `read_line`
 
-    tests/eval_getc_echo.ml:  let c = getc () in putc c
+A bare LF or a bare CR both terminate cleanly. CRLF is handled by
+accident rather than design: the CR terminates the line as expected, and
+the trailing LF becomes an empty string the *next* time `read_line` is
+called. If you care, strip leading empty lines at the call site, or feed
+LF-terminated input.
 
-Run via `just demo-echo` (feeds `Z`, prints `Z`) or the regression test
-`work/reg-rs/eval_getc_echo.rgt`.
+We don't peek ahead to consume a CR's following LF because the Pascal
+runtime has no un-read primitive — reading one byte past the CR would
+cost us that byte permanently.
+
+## Smoke tests
+
+    tests/eval_getc_echo.ml:        let c = getc () in putc c
+    tests/eval_read_line_echo.ml:   let s = read_line () in print_endline s
+
+Run via `just demo-echo` (feeds `Z`, prints `Z`) and `just demo-readline`
+(feeds `hello\n`, prints `hello`). Regression tests:
+`work/reg-rs/eval_getc_echo.rgt`, `work/reg-rs/eval_read_line_echo.rgt`.

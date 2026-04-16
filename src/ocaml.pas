@@ -85,6 +85,8 @@ var
   putc_ch: char;
   getc_noff: integer; getc_nlen: integer;
   getc_ch: char;
+  read_line_noff: integer; read_line_nlen: integer;
+  read_line_ch: char;
   wildcard_noff: integer; wildcard_nlen: integer;
   nil_noff: integer; nil_nlen: integer;
   hd_noff: integer; hd_nlen: integer;
@@ -1166,7 +1168,18 @@ begin
   name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
-  getc_nlen := 4
+  getc_nlen := 4;
+  read_line_noff := name_pool_len;
+  name_pool[name_pool_len] := 'r'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'a'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  read_line_nlen := 9
 end;
 function try_match(p: PPat; v: PVal; env: PEnv): PEnv; forward;
 function try_match(p: PPat; v: PVal; env: PEnv): PEnv;
@@ -1399,6 +1412,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(putc_noff, putc_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, getc_noff, getc_nlen) then begin
       eval_expr := mk_val_closure(getc_noff, getc_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, read_line_noff, read_line_nlen) then begin
+      eval_expr := mk_val_closure(read_line_noff, read_line_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, nil_noff, nil_nlen) then begin
       eval_expr := mk_val_nil; exit end;
     if names_equal(e^.noff, e^.nlen, hd_noff, hd_nlen) then begin
@@ -1561,6 +1576,33 @@ begin eval_expr := nil;
             getc calls bypass lookahead and go straight to sys_getc. }
           if getc_ch = chr(4) then read(getc_ch);
           eval_expr := mk_val_int(ord(getc_ch)); exit end;
+        if names_equal(fv^.noff, fv^.nlen, read_line_noff, read_line_nlen) then begin
+          { Accumulate bytes into string_pool until LF or CR (neither included).
+            Echoes each typed char and handles backspace (8/127) so a live
+            terminal user sees their input, mirroring lex_init. Skips the
+            same leading 0x04 EOT quirk as getc on the very first read.
+            Note: a bare CR terminates; a following LF will show up on the
+            next read_line call as an empty string. See docs/stdin-and-getc.md. }
+          a := string_pool_len;
+          read(read_line_ch);
+          if read_line_ch = chr(4) then read(read_line_ch);
+          while (read_line_ch <> chr(10)) and (read_line_ch <> chr(13)) do begin
+            if (read_line_ch = chr(8)) or (read_line_ch = chr(127)) then begin
+              if string_pool_len > a then begin
+                string_pool_len := string_pool_len - 1;
+                write(chr(8)); write(' '); write(chr(8))
+              end
+            end else begin
+              write(read_line_ch);
+              if string_pool_len < 4095 then begin
+                string_pool[string_pool_len] := read_line_ch;
+                string_pool_len := string_pool_len + 1
+              end
+            end;
+            read(read_line_ch)
+          end;
+          crlf;
+          eval_expr := mk_val_string(a, string_pool_len - a); exit end;
         if names_equal(fv^.noff, fv^.nlen, hd_noff, hd_nlen) then begin
           if av^.vk <> VK_CONS then begin eval_error := true; exit end;
           eval_expr := av^.head; exit end;

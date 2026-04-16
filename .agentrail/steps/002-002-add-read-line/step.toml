@@ -1,0 +1,14 @@
+number = 2
+slug = "002-add-read-line"
+status = "in-progress"
+description = """
+Build read_line : unit -> string on top of getc.
+
+## Scope
+
+Add a read_line b..."""
+role = "legacy"
+context_files = []
+created_at = "2026-04-16T11:50:46"
+task_type = "production"
+commits = []

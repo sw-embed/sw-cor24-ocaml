@@ -1,0 +1,11 @@
+{
+  "task_type": "production",
+  "state": {
+    "number": 1,
+    "step": "001-investigate-and-add-getc"
+  },
+  "action": "grep/read for pvm sys_getc, Pascal putc dispatch, Pascal runtime lookahead; Edit ocaml.pas (intern + lookup + apply); empirical trace to find the EOT-lookahead quirk; add OCAML_STDIN plumbing to run-ocaml.sh; register regression test",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-16T11:50:46"
+}

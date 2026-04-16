@@ -61,6 +61,10 @@ demo-match:
 demo-echo:
     @OCAML_STDIN='Z' ./scripts/run-ocaml.sh tests/eval_getc_echo.ml
 
+# Smoke test read_line: read a line from UART and print it back
+demo-readline:
+    @OCAML_STDIN=$'hello\n' ./scripts/run-ocaml.sh tests/eval_read_line_echo.ml
+
 # Run a REPL session from a file (one expression per line)
 repl-session file:
     @./scripts/run-ocaml.sh {{file}}
