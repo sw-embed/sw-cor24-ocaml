@@ -1,0 +1,8 @@
+number = 6
+slug = "text-adventure-demo"
+status = "in-progress"
+description = "Build tests/demo_adventure.ml: an idiomatic OCaml text-adventure demonstratin..."
+role = "legacy"
+context_files = []
+created_at = "2026-04-16T14:10:06"
+commits = []

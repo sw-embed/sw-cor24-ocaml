@@ -1,0 +1,2 @@
+command = '''OCAML_STDIN=$'n\nlook\ne\ntake\ninventory\nquit\n' ./scripts/run-ocaml.sh tests/demo_adventure.ml'''
+exit_code = 0

@@ -73,6 +73,10 @@ demo-echo-loop:
 demo-guess:
     @OCAML_STDIN=$'10\n80\n42\n' ./scripts/run-ocaml.sh tests/demo_guess.ml
 
+# Text-adventure demo (variant rooms, pattern-matched commands)
+demo-adventure:
+    @OCAML_STDIN=$'n\nlook\ne\ntake\ninventory\nquit\n' ./scripts/run-ocaml.sh tests/demo_adventure.ml
+
 # Run a REPL session from a file (one expression per line)
 repl-session file:
     @./scripts/run-ocaml.sh {{file}}

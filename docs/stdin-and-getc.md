@@ -104,6 +104,67 @@ must feed well-formed integers; the demo has no recovery path.
 Run: `just demo-echo-loop`, `just demo-guess`. Regression tests:
 `work/reg-rs/demo_echo_loop.rgt`, `work/reg-rs/demo_guess.rgt`.
 
+## A small text adventure
+
+`tests/demo_adventure.ml` is a four-room dungeon (Cave -> Hall -> Garden ->
+Outside) showing why OCaml is comfortable for this style of program. Run
+with `just demo-adventure`. It exercises everything the simpler demos
+established — `read_line`, string `(=)`, `print_endline` — but composes
+them around two algebraic ideas:
+
+**Variants for the world.** Rooms and items are sum types:
+
+    type room = Cave | Hall | Garden | Outside
+    type item = Lamp | Key
+
+A `room` value is *just* a tag — no allocation, no strings to compare, no
+hash table. The compiler (well, our interpreter) can dispatch on it with
+`function`/`match` and is exhaustive by construction. Adding a fifth room
+means adding one constructor and one arm in each `function` block; the
+type checker would tell us where to look.
+
+**Pattern matching for the rules.** Movement is a single function, one
+arm per room, with the direction handled by string `=`:
+
+    let go = fun r d -> match r with
+      | Cave   -> if d = "n" then Some Hall else None
+      | Hall   -> if d = "s" then Some Cave
+                  else if d = "e" then Some Garden
+                  else if d = "n" then Some Outside else None
+      | Garden -> if d = "w" then Some Hall else None
+      | _      -> None
+
+The `option` return is the OCaml way to say "this might fail" without
+exceptions. The caller pattern-matches `None` (no exit) vs `Some r2`
+(new room) vs `Some Outside` (terminal — describe and stop the loop).
+
+**State by argument, not mutation.** The main loop takes a tuple of
+`(current_room, inventory)` and recurses with the next state. There are
+no refs and no globals. Picking up an item:
+
+    | Some it -> (print_endline ("you take the " ^ item_str it);
+                  loop (r, it :: inv))
+
+`it :: inv` is a fresh list; the previous state is unchanged. This style
+makes "undo" trivial (you'd just keep the previous tuple) and makes the
+control flow easy to read top-to-bottom.
+
+**Why string-pattern arms aren't used.** The pattern grammar accepts
+ints, bools, ctors, lists, pairs, `Some`/`None`, and identifiers — but
+not string literals. So `match (r, d) with (Cave, "n") -> ...` would not
+parse. Instead we match on the `room` (a variant) and use `if d = "..."`
+inside each arm. This is the only place the demo bends to the subset.
+
+**Recursion-depth note.** Each iteration of the loop costs PVM call-stack
+frames; the canned walkthrough uses six commands (the depth at which a
+`quit`-terminated session still fits). Escaping via the Outside exit
+costs one extra frame for the inner `match`, so a longer walk that ends
+by leaving the dungeon will hit `TRAP 2` (stack overflow) sooner than
+one that ends with `quit`. Keep test scripts well under ~6 levels deep.
+
+Regression test: `work/reg-rs/demo_adventure.rgt` drives the canned
+input `n\nlook\ne\ntake\ninventory\nquit\n` through the script.
+
 ## What's still missing for richer interactive programs
 
 The echo/guess demos are deliberately small. A text-adventure-class
