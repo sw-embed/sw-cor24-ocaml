@@ -50,11 +50,12 @@ This marks the step as `in-progress`. Required before doing work.
 - Stay within the files the step prompt references. If you need to touch
   something outside that scope, pause and ask.
 
-### 4. COMMIT -- commit your work with git
+### 4. COMMIT AND PUSH -- commit your work with git, then push
 
 ```bash
 git add <files>
 git commit -m "<clear message>"
+git push
 ```
 
 **This must happen before `agentrail complete`.** `agentrail complete`
@@ -64,6 +65,13 @@ commit. If you complete before committing, the linkage is wrong.
 
 Include `.agentrail/` files you touched in the commit -- they are part of
 the record.
+
+**Every commit must be pushed.** Work that only exists locally is work
+that can be lost. For every fix or feature commit, run `git push` before
+moving on. This applies to every repo touched during the step, not just
+this one -- if you touched `../sw-cor24-pcode` or any sibling, commit
+and push there too. Don't accumulate a pile of uncommitted or unpushed
+work and defer it to the end of the session.
 
 ### 5. COMPLETE -- close the step
 

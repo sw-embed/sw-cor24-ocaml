@@ -67,15 +67,15 @@ demo-readline:
 
 # Interactive echo loop: print each line until user types 'quit'
 demo-echo-loop:
-    @OCAML_STDIN=$'hello\nworld\nquit\n' ./scripts/run-ocaml.sh tests/demo_echo_loop.ml
+    @./scripts/run-ocaml-interactive.sh tests/demo_echo_loop.ml
 
 # Interactive guess-the-number game (target is 42)
 demo-guess:
-    @OCAML_STDIN=$'10\n80\n42\n' ./scripts/run-ocaml.sh tests/demo_guess.ml
+    @./scripts/run-ocaml-interactive.sh tests/demo_guess.ml
 
-# Text-adventure demo (variant rooms, pattern-matched commands)
+# Text-adventure demo (variant rooms, pattern-matched commands; commands: look, n/s/e/w, take, inventory, quit)
 demo-adventure:
-    @OCAML_STDIN=$'n\nlook\ne\ntake\ninventory\nquit\n' ./scripts/run-ocaml.sh tests/demo_adventure.ml
+    @./scripts/run-ocaml-interactive.sh tests/demo_adventure.ml
 
 # Run a REPL session from a file (one expression per line)
 repl-session file:

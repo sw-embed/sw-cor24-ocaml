@@ -1,5 +1,5 @@
 program OCaml;
-uses Hardware, units;
+uses Hardware;
 { OCaml subset interpreter for COR24.
   Reads source from stdin, lexes, parses, and evaluates.
   Prints result or side-effect output from print_int.
@@ -74,7 +74,7 @@ var
   name_pool: array[0..2047] of char; name_pool_len: integer;
   string_pool: array[0..4095] of char; string_pool_len: integer;
   tok_str_off: integer; tok_str_len: integer;
-  parse_error: boolean; eval_error: boolean;
+  parse_error: boolean; eval_error: boolean; exit_requested: boolean;
   match_success: boolean;
   print_int_noff: integer; print_int_nlen: integer;
   set_led_noff: integer; set_led_nlen: integer;
@@ -86,6 +86,7 @@ var
   getc_noff: integer; getc_nlen: integer;
   getc_ch: char;
   read_line_noff: integer; read_line_nlen: integer;
+  exit_noff: integer; exit_nlen: integer;
   read_line_ch: char;
   wildcard_noff: integer; wildcard_nlen: integer;
   nil_noff: integer; nil_nlen: integer;
@@ -1179,7 +1180,13 @@ begin
   name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
-  read_line_nlen := 9
+  read_line_nlen := 9;
+  exit_noff := name_pool_len;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'x'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  exit_nlen := 4
 end;
 function try_match(p: PPat; v: PVal; env: PEnv): PEnv; forward;
 function try_match(p: PPat; v: PVal; env: PEnv): PEnv;
@@ -1350,16 +1357,18 @@ end;
 function int_of_string_impl(s: PVal): PVal;
 var i, j, acc: integer; is_neg: boolean; c: char;
 begin
-  int_of_string_impl := nil;
-  if s^.nlen = 0 then begin eval_error := true; exit end;
+  { Lenient: empty string, missing digits, or non-digit chars return 0.
+    Lets interactive demos survive stray input without tripping the REPL's
+    eval_error path. }
+  if s^.nlen = 0 then begin int_of_string_impl := mk_val_int(0); exit end;
   i := s^.noff; j := s^.noff + s^.nlen;
   is_neg := false;
   if string_pool[i] = '-' then begin is_neg := true; i := i + 1 end;
-  if i >= j then begin eval_error := true; exit end;
+  if i >= j then begin int_of_string_impl := mk_val_int(0); exit end;
   acc := 0;
   while i < j do begin
     c := string_pool[i];
-    if (c < '0') or (c > '9') then begin eval_error := true; exit end;
+    if (c < '0') or (c > '9') then begin int_of_string_impl := mk_val_int(0); exit end;
     acc := acc * 10 + (ord(c) - ord('0'));
     i := i + 1
   end;
@@ -1414,6 +1423,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(getc_noff, getc_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, read_line_noff, read_line_nlen) then begin
       eval_expr := mk_val_closure(read_line_noff, read_line_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, exit_noff, exit_nlen) then begin
+      eval_expr := mk_val_closure(exit_noff, exit_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, nil_noff, nil_nlen) then begin
       eval_expr := mk_val_nil; exit end;
     if names_equal(e^.noff, e^.nlen, hd_noff, hd_nlen) then begin
@@ -1619,6 +1630,8 @@ begin eval_expr := nil;
           end;
           crlf;
           eval_expr := mk_val_string(a, string_pool_len - a); exit end;
+        if names_equal(fv^.noff, fv^.nlen, exit_noff, exit_nlen) then begin
+          exit_requested := true; eval_expr := mk_val_unit; exit end;
         if names_equal(fv^.noff, fv^.nlen, hd_noff, hd_nlen) then begin
           if av^.vk <> VK_CONS then begin eval_error := true; exit end;
           eval_expr := av^.head; exit end;
@@ -1760,7 +1773,8 @@ begin
   intern_option;
   intern_fn_arg;
   intern_string_ops;
-  while not eof do begin
+  exit_requested := false;
+  while (not eof) and (not exit_requested) do begin
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);
     putc_ch := ' '; write(putc_ch);

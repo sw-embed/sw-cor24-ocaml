@@ -2,12 +2,15 @@
 #
 # build.sh -- Build the OCaml interpreter for COR24
 #
-# Uses the multi-unit pipeline:
-#   .pas -> p24p (unit mode) -> .spc -> pa24r -> .p24
-#   p24-load user.p24 p24p_rt.p24 -> .p24m
-#   cor24-run --assemble pvm.s -> pvm.bin
+# Module-mode pipeline (matches sw-cor24-basic):
+#   .pas -> p24p (module mode) -> .spc
+#   pl24r .spc runtime.spc -> linked.spc   (source-level link with Pascal runtime)
+#   pa24r linked.spc -> .p24               (single linked module)
+#   cor24-run --assemble pvm.s -> pvm.bin  (for cor24-run/embedded path)
 #
-# Output: build/ocaml.p24m + build/pvm.bin
+# build/ocaml.p24 is a single linked module. Both pv24t (host p-code
+# interpreter, used for interactive demos) and cor24-run (emulator, for
+# board/web demos) can load it.
 #
 # Usage: ./scripts/build.sh
 set -euo pipefail
@@ -17,9 +20,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 . "$REPO_ROOT/vendor/active.env"
 
 P24P_S="$REPO_ROOT/vendor/sw-pascal/$SW_PASCAL_VERSION/bin/p24p.s"
-RT_P24="$REPO_ROOT/vendor/sw-pascal/$SW_PASCAL_VERSION/bin/p24p_rt.p24"
+RUNTIME_SPC="$REPO_ROOT/vendor/sw-pascal/$SW_PASCAL_VERSION/bin/runtime.spc"
 PVM="$REPO_ROOT/vendor/sw-pcode/$SW_PCODE_VERSION/bin/pvm.s"
 PA24R="$REPO_ROOT/vendor/sw-pcode/$SW_PCODE_VERSION/bin/pa24r"
+PL24R="$REPO_ROOT/vendor/sw-pcode/$SW_PCODE_VERSION/bin/pl24r"
 P24LOAD="$REPO_ROOT/vendor/sw-pcode/$SW_PCODE_VERSION/bin/p24-load"
 
 COR24_RUN="$REPO_ROOT/vendor/sw-em24/$SW_EM24_VERSION/bin/cor24-run"
@@ -32,10 +36,9 @@ MAX_INSTRS="${1:-1000000000}"
 
 mkdir -p "$BUILD_DIR"
 
-echo "Building OCaml interpreter for COR24 (unit mode)..."
+echo "Building OCaml interpreter for COR24 (module mode)..."
 
-# Step 1: Compile Pascal to .spc (unit mode)
-echo "  [1/5] Compiling Pascal -> .spc (p24p, unit mode)..."
+echo "  [1/4] Compiling Pascal -> .spc (p24p)..."
 SPC_OUTPUT=$("$COR24_RUN" --run "$P24P_S" -u "$(cat "$SRC")"$'\x04' --speed 0 -t 120 -n "$MAX_INSTRS" 2>&1 | \
   grep -v '^\[UART' | sed 's/^UART output: //')
 
@@ -45,21 +48,23 @@ if ! echo "$SPC_OUTPUT" | grep -q "; OK"; then
   exit 1
 fi
 
-echo "$SPC_OUTPUT" | sed -n '/^\.unit/,/^\.endunit/p' > "$BUILD_DIR/ocaml.spc"
-echo "  [1/5] ok"
+echo "$SPC_OUTPUT" | sed -n '/^\.module/,/^\.endmodule/p' > "$BUILD_DIR/ocaml.spc"
+[ -s "$BUILD_DIR/ocaml.spc" ] || { echo "error: empty .spc output (expected .module/.endmodule block)" >&2; exit 1; }
+echo "  [1/4] ok ($(wc -l < "$BUILD_DIR/ocaml.spc") lines)"
 
-# Step 2: Assemble user unit to .p24 (v2)
-echo "  [2/5] Assembling -> .p24 (pa24r)..."
-"$PA24R" "$BUILD_DIR/ocaml.spc" -o "$BUILD_DIR/ocaml.p24" 2>/dev/null
-echo "  [2/5] ok"
+echo "  [2/4] Linking with Pascal runtime (pl24r)..."
+"$PL24R" "$BUILD_DIR/ocaml.spc" "$RUNTIME_SPC" -o "$BUILD_DIR/ocaml_linked.spc" 2>/dev/null
+echo "  [2/4] ok"
 
-# Step 3: Link units with p24-load
-echo "  [3/5] Linking units (p24-load)..."
-"$P24LOAD" --load-addr 0x010000 "$BUILD_DIR/ocaml.p24" "$RT_P24" -o "$BUILD_DIR/ocaml.p24m" 2>/dev/null
+echo "  [3/5] Assembling -> .p24 (pa24r)..."
+"$PA24R" "$BUILD_DIR/ocaml_linked.spc" -o "$BUILD_DIR/ocaml.p24" 2>/dev/null
 echo "  [3/5] ok"
 
-# Step 4: Pre-assemble PVM
-echo "  [4/5] Assembling PVM..."
+echo "  [4/5] Relocating -> .p24m (p24-load --load-addr 0x010000)..."
+"$P24LOAD" --load-addr 0x010000 "$BUILD_DIR/ocaml.p24" -o "$BUILD_DIR/ocaml.p24m" 2>/dev/null
+echo "  [4/5] ok"
+
+echo "  [5/5] Assembling PVM (for cor24-run/embedded path)..."
 PVM_DIR="$(dirname "$PVM")"
 (cd "$PVM_DIR" && "$COR24_RUN" --assemble "$(basename "$PVM")" "$BUILD_DIR/pvm.bin" "$BUILD_DIR/pvm.lst" >/dev/null 2>&1)
 CODE_PTR=$(grep -A1 "code_ptr:" "$BUILD_DIR/pvm.lst" | tail -1 | awk '{print $1}' | tr -d ':')
@@ -68,19 +73,11 @@ if [ -z "$CODE_PTR" ]; then
   exit 1
 fi
 echo "$CODE_PTR" > "$BUILD_DIR/code_ptr_addr.txt"
-echo "  [4/5] ok (code_ptr @ 0x$CODE_PTR)"
-
-# Step 5: Done
-echo "  [5/5] Build artifacts ready"
+echo "  [5/5] ok (code_ptr @ 0x$CODE_PTR)"
 
 echo ""
 echo "Build complete:"
-echo "  Image:     $BUILD_DIR/ocaml.p24m"
-echo "  PVM:       $BUILD_DIR/pvm.bin"
+echo "  ocaml.p24  (base 0, for pv24t / interactive demos)"
+echo "  ocaml.p24m (relocated to 0x010000, for cor24-run / regression / embedded)"
+echo "  pvm.bin    (for cor24-run path)"
 echo "  Code ptr:  0x$CODE_PTR"
-echo ""
-echo "Run with:"
-echo "  cor24-run --load-binary $BUILD_DIR/pvm.bin@0 \\"
-echo "    --load-binary $BUILD_DIR/ocaml.p24m@0x010000 \\"
-echo "    --patch \"0x${CODE_PTR}=0x010000\" \\"
-echo "    --entry 0 --speed 0 -n 500000000 --terminal"
