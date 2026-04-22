@@ -1,0 +1,1 @@
+Implemented tail-call optimization in eval_expr via while-true trampoline. Tail-position calls in EK_IF/LET/MATCH/APP(user-closure) reassign (e,env) and loop instead of recursing; non-tail subexpression eval unchanged. Added demo_tco_countdown regression. demo_adventure now accepts 100+ commands (was 8).

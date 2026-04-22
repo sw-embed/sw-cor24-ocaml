@@ -1,6 +1,6 @@
 number = 1
 slug = "001-tco-eval-expr"
-status = "in-progress"
+status = "completed"
 description = """
 Implement tail-call optimization in eval_expr (src/ocaml.pas:1400).
 
@@ -8,4 +8,5 @@ Goal: re..."""
 role = "production"
 context_files = []
 created_at = "2026-04-21T12:16:13"
-commits = []
+completed_at = "2026-04-21T21:46:11"
+commits = ["4feee03c27568821fe8081483df769dc31ec24c6"]
