@@ -1,6 +1,6 @@
-name = "baselines-and-gc-plan"
+name = "tco-eval-expr"
 status = "active"
 current_step = 1
-created_at = "2026-04-22T09:36:28"
+created_at = "2026-04-21T12:15:55"
 plan_file = ".agentrail/plan.md"
 retroactive = false

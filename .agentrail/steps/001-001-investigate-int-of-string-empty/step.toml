@@ -1,0 +1,10 @@
+number = 1
+slug = "001-investigate-int-of-string-empty"
+status = "in-progress"
+description = """
+The reg-rs baseline for eval_string_conversion expects:
+  int_of_string "" ->..."""
+role = "production"
+context_files = []
+created_at = "2026-04-22T09:36:45"
+commits = []
