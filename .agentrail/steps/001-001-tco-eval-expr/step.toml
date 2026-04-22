@@ -1,0 +1,11 @@
+number = 1
+slug = "001-tco-eval-expr"
+status = "in-progress"
+description = """
+Implement tail-call optimization in eval_expr (src/ocaml.pas:1400).
+
+Goal: re..."""
+role = "production"
+context_files = []
+created_at = "2026-04-21T12:16:13"
+commits = []

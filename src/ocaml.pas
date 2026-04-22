@@ -1400,6 +1400,10 @@ begin new(p); p^.vk := VK_CLOSURE; p^.ival := stage;
 function eval_expr(e: PExpr; env: PEnv): PVal;
 var lv, rv, fv, av: PVal; l, r, x, bd, arm: PExpr; ne, ce: PEnv; a, b, res: integer;
 begin eval_expr := nil;
+  { Trampoline for tail-call optimization: tail-position calls (EK_IF/LET/
+    MATCH/APP bodies) reassign (e, env) and loop rather than recursing,
+    so recursive OCaml programs run in constant Pascal-stack space. }
+  while true do begin
   if e = nil then begin eval_error := true; exit end;
   if e^.kind = EK_INT then begin eval_expr := mk_val_int(e^.ival); exit end;
   if e^.kind = EK_BOOL then begin eval_expr := mk_val_bool(e^.ival); exit end;
@@ -1534,9 +1538,9 @@ begin eval_expr := nil;
     if lv^.ival=0 then eval_expr := mk_val_bool(1) else eval_expr := mk_val_bool(0); exit end;
   if e^.kind = EK_IF then begin
     l := e^.left; lv := eval_expr(l, env); if eval_error then exit;
-    if lv^.ival <> 0 then begin r := e^.right; eval_expr := eval_expr(r, env) end
-    else begin x := e^.extra; eval_expr := eval_expr(x, env) end; exit end;
-  if e^.kind = EK_LET then begin
+    if lv^.ival <> 0 then e := e^.right
+    else e := e^.extra end
+  else if e^.kind = EK_LET then begin
     l := e^.left;
     if e^.ival = 1 then begin
       lv := mk_val_closure(0, 0, nil, nil);
@@ -1547,37 +1551,33 @@ begin eval_expr := nil;
     end else begin
       lv := eval_expr(l, env); if eval_error then exit;
       ne := env_extend(env, e^.noff, e^.nlen, lv) end;
-    r := e^.right; eval_expr := eval_expr(r, ne); exit end;
-  if e^.kind = EK_FUN then begin
-    eval_expr := mk_val_closure(e^.noff, e^.nlen, e^.left, env); exit end;
-  if e^.kind = EK_MATCH then begin
+    e := e^.right; env := ne end
+  else if e^.kind = EK_FUN then begin
+    eval_expr := mk_val_closure(e^.noff, e^.nlen, e^.left, env); exit end
+  else if e^.kind = EK_MATCH then begin
     l := e^.left;
     lv := eval_expr(l, env);
     if eval_error then exit;
     arm := e^.right;
-    while arm <> nil do begin
+    bd := nil;
+    while (arm <> nil) and (bd = nil) do begin
       ne := try_match(arm^.pat, lv, env);
       if match_success then begin
         if arm^.extra <> nil then begin
           rv := eval_expr(arm^.extra, ne);
           if eval_error then exit;
-          if (rv^.vk = VK_BOOL) and (rv^.ival = 1) then begin
-            bd := arm^.left; eval_expr := eval_expr(bd, ne); exit
-          end
-        end else begin
-          bd := arm^.left; eval_expr := eval_expr(bd, ne); exit
-        end
-      end;
-      arm := arm^.right
+          if (rv^.vk = VK_BOOL) and (rv^.ival = 1) then bd := arm^.left
+          else arm := arm^.right
+        end else bd := arm^.left
+      end else arm := arm^.right
     end;
-    eval_error := true; { no match }
-    exit
-  end;
-  if e^.kind = EK_APP then begin
+    if bd = nil then begin eval_error := true; exit end;
+    e := bd; env := ne end
+  else if e^.kind = EK_APP then begin
     l := e^.left; fv := eval_expr(l, env); if eval_error then exit;
     r := e^.right; av := eval_expr(r, env); if eval_error then exit;
-    if fv^.vk = VK_CLOSURE then begin
-      if fv^.body = nil then begin
+    if fv^.vk <> VK_CLOSURE then begin eval_error := true; exit end;
+    if fv^.body = nil then begin
         if names_equal(fv^.noff, fv^.nlen, print_int_noff, print_int_nlen) then begin
           write(av^.ival); crlf; eval_expr := mk_val_unit; exit end;
         if names_equal(fv^.noff, fv^.nlen, set_led_noff, set_led_nlen) then begin
@@ -1692,11 +1692,12 @@ begin eval_expr := nil;
             eval_expr := mk_partial(list_fold_noff, list_fold_nlen, 2, fv^.head, av); exit end;
           eval_expr := list_fold_impl(fv^.head, fv^.tail, av); exit end;
         eval_error := true; exit end;
-      bd := fv^.body; ce := fv^.cenv;
-      ne := env_extend(ce, fv^.noff, fv^.nlen, av);
-      eval_expr := eval_expr(bd, ne); exit end;
-    eval_error := true; exit end;
-  eval_error := true end;
+    bd := fv^.body; ce := fv^.cenv;
+    ne := env_extend(ce, fv^.noff, fv^.nlen, av);
+    e := bd; env := ne end
+  else begin eval_error := true; exit end
+  end  { while true }
+end;
 
 { === Value pretty-printer === }
 
