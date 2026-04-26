@@ -1,6 +1,6 @@
 number = 5
 slug = "005-user-defined-variants"
-status = "in-progress"
+status = "completed"
 description = """
 Implement GitHub issue #2: user-defined variant types / algebraic data types,
 including constructors with payloads and pattern matching.
@@ -16,4 +16,5 @@ context_files = [
     "docs/saga-plan-pattern-match-list.md",
 ]
 created_at = "2026-04-25T00:00:00"
-commits = []
+completed_at = "2026-04-25T19:51:20"
+commits = ["17732be367162d1887bd80a40a2ecf0068a1fbe4"]
