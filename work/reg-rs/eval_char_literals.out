@@ -1,0 +1,13 @@
+> Char.code 'a'
+97
+> Char.code '\n'
+10
+> Char.code '\\'
+92
+> Char.code '\''
+39
+> Char.chr 35
+35
+> if Char.code '#' = 35 then print_endline "hash" else print_endline "miss"
+hash
+> if Char.chr 45 = Char.code '-' then print_endline "dash" else print_endline "miss"dash

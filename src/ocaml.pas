@@ -114,6 +114,8 @@ var
   let_tmp_noff: integer; let_tmp_nlen: integer;
   print_endline_noff: integer; print_endline_nlen: integer;
   string_length_noff: integer; string_length_nlen: integer;
+  char_code_noff: integer; char_code_nlen: integer;
+  char_chr_noff: integer; char_chr_nlen: integer;
   module_directive_noff: integer; module_directive_nlen: integer;
   current_module: array[0..63] of char; current_module_len: integer;
   ctor_names_off: array[0..63] of integer;
@@ -226,6 +228,28 @@ begin skip_ws_and_comments;
   if c = '.' then begin tok := TK_DOT; pos := pos+1; exit end;
   if c = ',' then begin tok := TK_COMMA; pos := pos+1; exit end;
   if c = '^' then begin tok := TK_CARET; pos := pos+1; exit end;
+  if c = chr(39) then begin
+    pos := pos + 1;
+    if pos >= src_len then begin tok := TK_ERROR; exit end;
+    if src[pos] = '\' then begin
+      pos := pos + 1;
+      if pos >= src_len then begin tok := TK_ERROR; exit end;
+      if src[pos] = 'n' then tok_int := 10
+      else if src[pos] = 't' then tok_int := 9
+      else if src[pos] = '\' then tok_int := ord('\')
+      else if src[pos] = chr(39) then tok_int := ord(chr(39))
+      else tok_int := ord(src[pos]);
+      pos := pos + 1
+    end else begin
+      tok_int := ord(src[pos]);
+      pos := pos + 1
+    end;
+    if (pos < src_len) and (src[pos] = chr(39)) then begin
+      pos := pos + 1;
+      tok := TK_INT;
+      exit
+    end else begin tok := TK_ERROR; exit end
+  end;
   if c = '"' then begin
     { String literal. Read until closing quote, handling escapes. }
     pos := pos + 1;
@@ -1266,6 +1290,30 @@ begin
   name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
   module_directive_nlen := 8
 end;
+procedure intern_char_ops;
+begin
+  char_code_noff := name_pool_len;
+  name_pool[name_pool_len] := 'C'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'a'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'r'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'o'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  char_code_nlen := 9;
+  char_chr_noff := name_pool_len;
+  name_pool[name_pool_len] := 'C'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'a'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'r'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'c'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'r'; name_pool_len := name_pool_len+1;
+  char_chr_nlen := 8
+end;
 procedure intern_board;
 begin
   set_led_noff := name_pool_len;
@@ -1620,6 +1668,10 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(print_endline_noff, print_endline_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, string_length_noff, string_length_nlen) then begin
       eval_expr := mk_val_closure(string_length_noff, string_length_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, char_code_noff, char_code_nlen) then begin
+      eval_expr := mk_val_closure(char_code_noff, char_code_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, char_chr_noff, char_chr_nlen) then begin
+      eval_expr := mk_val_closure(char_chr_noff, char_chr_nlen, nil, nil); exit end;
     a := ctor_lookup(e^.noff, e^.nlen);
     if a >= 0 then begin
       if ctor_arity[a] > 0 then
@@ -1822,6 +1874,13 @@ begin eval_expr := nil;
         if names_equal(fv^.noff, fv^.nlen, string_length_noff, string_length_nlen) then begin
           if av^.vk <> VK_STRING then begin eval_error := true; exit end;
           eval_expr := mk_val_int(av^.nlen); exit end;
+        if names_equal(fv^.noff, fv^.nlen, char_code_noff, char_code_nlen) then begin
+          if av^.vk <> VK_INT then begin eval_error := true; exit end;
+          eval_expr := mk_val_int(av^.ival); exit end;
+        if names_equal(fv^.noff, fv^.nlen, char_chr_noff, char_chr_nlen) then begin
+          if av^.vk <> VK_INT then begin eval_error := true; exit end;
+          if (av^.ival < 0) or (av^.ival > 255) then begin eval_error := true; exit end;
+          eval_expr := mk_val_int(av^.ival); exit end;
         if names_equal(fv^.noff, fv^.nlen, string_of_int_noff, string_of_int_nlen) then begin
           if av^.vk <> VK_INT then begin eval_error := true; exit end;
           eval_expr := string_of_int_impl(av^.ival); exit end;
@@ -2001,6 +2060,7 @@ begin
   intern_fn_arg;
   intern_string_ops;
   intern_module_directive;
+  intern_char_ops;
   exit_requested := false;
   current_module_len := 0;
   top_env := nil;

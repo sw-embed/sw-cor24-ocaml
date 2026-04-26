@@ -24,6 +24,8 @@ an AOT-compiled native COR24 binary.
 - **Lists**: `[]`, `[1; 2; 3]`, cons `1 :: xs`, pretty-printed
 - **Pairs**: `(a, b)` tuples, pretty-printed
 - **Options**: `None`, `Some x`
+- **Char literals**: `'a'`, `'\n'`, `'\\'`, `'\''`, represented as integer
+  character codes on this target
 - **Pattern matching**: `match e with p1 -> e1 | p2 -> e2 | ...`
   with patterns for ints, bools, wildcards, variables, lists,
   pairs, and options; source files may put each `| PAT -> EXPR` arm
@@ -47,6 +49,10 @@ an AOT-compiled native COR24 binary.
 - `hd`, `tl`, `is_empty` -- list operations
 - `fst`, `snd` -- pair accessors
 - `List.length`, `List.rev`, `List.hd`, `List.tl`, `List.is_empty`
+
+**Chars**
+- `Char.code : char -> int` -- identity conversion in the integer target model
+- `Char.chr : int -> char` -- validates 0..255 and returns the integer code
 
 ## Quick Start
 

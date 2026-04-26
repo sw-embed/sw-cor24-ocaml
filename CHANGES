@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added char literal syntax (`'a'`, `'\n'`, `'\\'`, `'\''`) plus
+  `Char.code` and `Char.chr` for readable byte/ASCII comparisons.
 - Added source-file support for standard OCaml block comments `(* ... *)`,
   including nested comments and comments spanning physical lines.
 - Added source-file support for multi-line `match ... with` arms, allowing
