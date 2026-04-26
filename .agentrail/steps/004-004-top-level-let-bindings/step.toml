@@ -1,6 +1,6 @@
 number = 4
 slug = "004-top-level-let-bindings"
-status = "in-progress"
+status = "completed"
 description = """
 Implement GitHub issue #3: persistent top-level let bindings without requiring
 `in EXPR`, so multi-expression files can define helpers once and reuse them.
@@ -16,4 +16,5 @@ context_files = [
     "tests/repl_session.ml",
 ]
 created_at = "2026-04-25T00:00:00"
-commits = []
+completed_at = "2026-04-25T19:43:08"
+commits = ["9449a05ec828addf0416d9a964abf695c68a0a94"]
