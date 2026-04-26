@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_qualified_builtin.ml"
+exit_code = 0

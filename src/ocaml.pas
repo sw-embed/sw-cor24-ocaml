@@ -444,11 +444,11 @@ begin parse_atom := nil;
     { Create EK_VAR for the current ident first (tok_id still has it). }
     e := mk_var_node;
     lex_next;
-    { If followed by one or more '.ident', extend the name in the
+    { If followed by '.ident', extend the name in the
       already-created node by appending '.' + ident to the name pool.
       Works because pool_intern writes contiguously and no other
       interns happen between mk_var_node and here. }
-    while tok = TK_DOT do begin
+    if tok = TK_DOT then begin
       lex_next;
       if tok <> TK_IDENT then begin parse_error := true; exit end;
       if name_pool_len < NAME_POOL_MAX then begin
@@ -467,6 +467,7 @@ begin parse_atom := nil;
       end;
       lex_next
     end;
+    if tok = TK_DOT then begin parse_error := true; exit end;
     parse_atom := e;
     exit
   end;
