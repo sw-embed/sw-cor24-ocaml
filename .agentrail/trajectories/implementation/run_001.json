@@ -1,0 +1,11 @@
+{
+  "task_type": "implementation",
+  "state": {
+    "number": 2,
+    "step": "qualified-name-parser"
+  },
+  "action": "Tightened qualified-name parsing to the MVP shape. parse_atom still supports two-part Module.value references such as List.length, but now rejects nested chains like Math.Inner.add with PARSE ERROR instead of silently accepting unsupported nested module syntax. Added focused regression fixtures eval_qualified_builtin.ml and eval_unsupported_nested_module.ml with reg-rs baselines. Validation: just build passed; REG_RS_DATA_DIR=work/reg-rs reg-rs run -p eval_qualified_builtin -v passed; REG_RS_DATA_DIR=work/reg-rs reg-rs run -p eval_unsupported_nested_module -v passed. Code/test commit: cc0c77a.",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-25T20:34:32"
+}
