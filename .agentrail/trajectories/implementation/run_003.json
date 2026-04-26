@@ -1,0 +1,11 @@
+{
+  "task_type": "implementation",
+  "state": {
+    "number": 3,
+    "step": "issue-10-char-literals"
+  },
+  "action": "Implemented GitHub issue #10: char literals and Char.code / Char.chr. The lexer now parses char literals to integer character codes for this integer-only target, including plain chars and escapes for newline, tab, backslash, and single quote. Added Char.code and Char.chr built-ins; Char.chr validates the 0..255 byte range and returns the integer code. Added tests/eval_char_literals.ml and reg-rs baseline work/reg-rs/eval_char_literals.{rgt,out}. Updated README and CHANGES. Validation: just build passed, focused eval_char_literals and eval_string_escapes passed, and full just test passed with 82 tests. Closed GitHub issue #10. Code/docs commit: fd7b9b0.",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-26T07:47:01"
+}
