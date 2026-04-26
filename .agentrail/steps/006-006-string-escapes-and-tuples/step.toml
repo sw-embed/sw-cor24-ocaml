@@ -1,0 +1,20 @@
+number = 6
+slug = "006-string-escapes-and-tuples"
+status = "pending"
+description = """
+Implement GitHub issue #4: common string literal escapes and tuple literals /
+patterns of arity three or greater.
+"""
+role = "production"
+context_files = [
+  "src/oc_lex.pas",
+  "src/oc_parse.pas",
+  "src/oc_ast.pas",
+  "src/oc_value.pas",
+  "src/oc_eval.pas",
+  "tests/eval_strings.ml",
+  "tests/eval_pairs.ml",
+  "tests/eval_let_destructure.ml",
+]
+created_at = "2026-04-25T00:00:00"
+commits = []

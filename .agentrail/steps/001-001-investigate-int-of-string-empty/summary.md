@@ -1,0 +1,1 @@
+Decision: int_of_string lenient behavior (de562aa) is intentional; baseline was stale. Rebased eval_string_conversion.out to accept current '0' for empty/garbage input. No source change.

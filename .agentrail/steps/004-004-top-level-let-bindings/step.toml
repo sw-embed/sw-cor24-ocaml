@@ -1,0 +1,19 @@
+number = 4
+slug = "004-top-level-let-bindings"
+status = "pending"
+description = """
+Implement GitHub issue #3: persistent top-level let bindings without requiring
+`in EXPR`, so multi-expression files can define helpers once and reuse them.
+"""
+role = "production"
+context_files = [
+  "src/oc_lex.pas",
+  "src/oc_parse.pas",
+  "src/oc_ast.pas",
+  "src/oc_eval.pas",
+  "src/ocaml.pas",
+  "tests/eval_function_form_let.ml",
+  "tests/repl_session.ml",
+]
+created_at = "2026-04-25T00:00:00"
+commits = []

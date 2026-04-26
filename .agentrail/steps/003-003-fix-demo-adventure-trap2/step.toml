@@ -1,0 +1,18 @@
+number = 3
+slug = "003-fix-demo-adventure-trap2"
+status = "pending"
+description = """
+Fix GitHub issue #1: demo_adventure traps with TRAP 2 when taking the lamp
+after a Cave -> Hall -> Cave round-trip.
+"""
+role = "production"
+context_files = [
+  "tests/demo_adventure.ml",
+  "docs/stdin-and-getc.md",
+  "src/oc_eval.pas",
+  "src/oc_value.pas",
+  "src/ocaml.pas",
+  "scripts/run-ocaml.sh",
+]
+created_at = "2026-04-25T00:00:00"
+commits = []

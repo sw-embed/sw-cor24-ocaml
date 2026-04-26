@@ -1,0 +1,10 @@
+number = 2
+slug = "002-rebase-stale-baselines"
+status = "in-progress"
+description = """
+Rebase the remaining 7 pre-existing baseline failures, all unrelated to TCO:
+..."""
+role = "legacy"
+context_files = []
+created_at = "2026-04-22T09:52:11"
+commits = []
