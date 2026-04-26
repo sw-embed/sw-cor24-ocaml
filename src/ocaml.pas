@@ -116,6 +116,7 @@ var
   string_length_noff: integer; string_length_nlen: integer;
   ctor_names_off: array[0..63] of integer;
   ctor_names_len: array[0..63] of integer;
+  ctor_arity: array[0..63] of integer;
   ctor_count: integer;
   ast: PExpr; result: PVal; top_env: PEnv;
 
@@ -363,9 +364,9 @@ begin new(p); p^.pk := PK_NONE; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub
 function mk_pat_some(sub: PPat): PPat;
 var p: PPat;
 begin new(p); p^.pk := PK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := sub; p^.sub2 := nil; mk_pat_some := p end;
-function mk_pat_ctor(tag: integer): PPat;
+function mk_pat_ctor(tag: integer; sub: PPat): PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_ctor := p end;
+begin new(p); p^.pk := PK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.sub1 := sub; p^.sub2 := nil; mk_pat_ctor := p end;
 
 function ctor_lookup(noff, nlen: integer): integer;
 var i, j: integer; eq: boolean;
@@ -378,13 +379,33 @@ begin ctor_lookup := -1; i := 0;
         j := j+1 end;
       if eq then begin ctor_lookup := i; exit end end;
     i := i+1 end end;
-procedure register_ctor;
+procedure register_ctor(arity: integer);
 var off: integer;
 begin if ctor_count >= CTOR_MAX then exit;
   off := pool_intern;
   ctor_names_off[ctor_count] := off;
   ctor_names_len[ctor_count] := tok_id_len;
+  ctor_arity[ctor_count] := arity;
   ctor_count := ctor_count+1 end;
+
+function tok_is_of: boolean;
+begin tok_is_of := (tok = TK_IDENT) and (tok_id_len = 2)
+  and (tok_id[0] = 'o') and (tok_id[1] = 'f') end;
+
+function parse_ctor_decl: boolean;
+begin
+  parse_ctor_decl := false;
+  if tok <> TK_IDENT then begin parse_error := true; exit end;
+  register_ctor(0);
+  lex_next;
+  if tok_is_of then begin
+    ctor_arity[ctor_count - 1] := 1;
+    lex_next;
+    while (tok <> TK_PIPE) and (tok <> TK_EOF) and not parse_error do
+      lex_next
+  end;
+  parse_ctor_decl := true
+end;
 
 { === Parser === }
 function parse_expr: PExpr; forward;
@@ -568,11 +589,9 @@ begin parse_expr := nil;
     if tok <> TK_EQ then begin parse_error := true; exit end;
     lex_next;
     if tok = TK_PIPE then lex_next;
-    if tok <> TK_IDENT then begin parse_error := true; exit end;
-    register_ctor; lex_next;
+    if not parse_ctor_decl then exit;
     while tok = TK_PIPE do begin lex_next;
-      if tok <> TK_IDENT then begin parse_error := true; exit end;
-      register_ctor; lex_next end;
+      if not parse_ctor_decl then exit end;
     e := mk_int(0); e^.kind := EK_TYPEDECL; parse_expr := e; exit end;
   if tok=TK_LET then begin
     allow_decl := top_let_allowed;
@@ -726,7 +745,16 @@ begin
     end;
     off := pool_intern;
     sub_i := ctor_lookup(off, tok_id_len);
-    if sub_i >= 0 then begin parse_pattern_atom := mk_pat_ctor(sub_i); lex_next; exit end;
+    if sub_i >= 0 then begin
+      lex_next;
+      if ctor_arity[sub_i] > 0 then begin
+        sub := parse_pattern_atom;
+        if parse_error then exit;
+        parse_pattern_atom := mk_pat_ctor(sub_i, sub)
+      end else
+        parse_pattern_atom := mk_pat_ctor(sub_i, nil);
+      exit
+    end;
     parse_pattern_atom := mk_pat_var(off, tok_id_len);
     lex_next; exit end;
   if tok = TK_LBRACKET then begin
@@ -920,6 +948,9 @@ begin new(p); p^.vk := VK_UNIT; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.bod
 function mk_val_ctor(tag: integer): PVal;
 var p: PVal;
 begin new(p); p^.vk := VK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_ctor := p end;
+function mk_val_ctor_arg(tag: integer; arg: PVal): PVal;
+var p: PVal;
+begin new(p); p^.vk := VK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := arg; p^.tail := nil; mk_val_ctor_arg := p end;
 procedure intern_print_int;
 begin print_int_noff := name_pool_len;
   name_pool[name_pool_len] := 'p'; name_pool_len := name_pool_len+1;
@@ -1271,8 +1302,12 @@ begin
   end;
 
   if p^.pk = PK_CTOR then begin
-    if (v^.vk = VK_CTOR) and (v^.ival = p^.ival) then exit;
-    match_success := false; exit end;
+    if (v^.vk <> VK_CTOR) or (v^.ival <> p^.ival) then begin match_success := false; exit end;
+    if ctor_arity[p^.ival] > 0 then begin
+      try_match := try_match(p^.sub1, v^.head, env);
+      exit
+    end;
+    exit end;
 
   match_success := false end;
 
@@ -1493,7 +1528,13 @@ begin eval_expr := nil;
     if names_equal(e^.noff, e^.nlen, string_length_noff, string_length_nlen) then begin
       eval_expr := mk_val_closure(string_length_noff, string_length_nlen, nil, nil); exit end;
     a := ctor_lookup(e^.noff, e^.nlen);
-    if a >= 0 then begin eval_expr := mk_val_ctor(a); exit end;
+    if a >= 0 then begin
+      if ctor_arity[a] > 0 then
+        eval_expr := mk_val_closure(e^.noff, e^.nlen, nil, nil)
+      else
+        eval_expr := mk_val_ctor(a);
+      exit
+    end;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
@@ -1712,6 +1753,11 @@ begin eval_expr := nil;
           if fv^.ival = 1 then begin
             eval_expr := mk_partial(list_fold_noff, list_fold_nlen, 2, fv^.head, av); exit end;
           eval_expr := list_fold_impl(fv^.head, fv^.tail, av); exit end;
+        a := ctor_lookup(fv^.noff, fv^.nlen);
+        if a >= 0 then begin
+          if ctor_arity[a] = 1 then begin eval_expr := mk_val_ctor_arg(a, av); exit end;
+          eval_error := true; exit
+        end;
         eval_error := true; exit end;
     bd := fv^.body; ce := fv^.cenv;
     ne := env_extend(ce, fv^.noff, fv^.nlen, av);
@@ -1800,9 +1846,15 @@ begin
     print_value(v^.head);
     exit
   end;
-  if v^.vk = VK_CTOR then begin i := 0;
+  if v^.vk = VK_CTOR then begin
+    i := 0;
     while i < ctor_names_len[v^.ival] do begin
-      write(name_pool[ctor_names_off[v^.ival]+i]); i := i+1 end; exit end;
+      write(name_pool[ctor_names_off[v^.ival]+i]); i := i+1 end;
+    if v^.head <> nil then begin
+      write(' ');
+      print_value(v^.head)
+    end;
+    exit end;
   if v^.vk = VK_CLOSURE then begin write('<fun>'); exit end;
   write('<?>')
 end;

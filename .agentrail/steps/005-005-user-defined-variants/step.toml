@@ -1,19 +1,19 @@
 number = 5
 slug = "005-user-defined-variants"
-status = "pending"
+status = "in-progress"
 description = """
 Implement GitHub issue #2: user-defined variant types / algebraic data types,
 including constructors with payloads and pattern matching.
 """
 role = "production"
 context_files = [
-  "src/oc_lex.pas",
-  "src/oc_parse.pas",
-  "src/oc_ast.pas",
-  "src/oc_value.pas",
-  "src/oc_eval.pas",
-  "tests/eval_named_adts.ml",
-  "docs/saga-plan-pattern-match-list.md",
+    "src/oc_lex.pas",
+    "src/oc_parse.pas",
+    "src/oc_ast.pas",
+    "src/oc_value.pas",
+    "src/oc_eval.pas",
+    "tests/eval_named_adts.ml",
+    "docs/saga-plan-pattern-match-list.md",
 ]
 created_at = "2026-04-25T00:00:00"
 commits = []
