@@ -1,0 +1,26 @@
+# Changes
+
+## Unreleased
+
+- Added a multi-file module MVP:
+  - `scripts/run-ocaml.sh` accepts multiple `.ml` inputs.
+  - Each source file becomes an implicit module named from the filename stem,
+    such as `math.ml` -> `Math`.
+  - Cross-file references use qualified names such as `Math.add`.
+  - Unqualified names remain local to the active file/module plus built-ins.
+  - Single-file runner behavior remains backward compatible.
+- Added module demos:
+  - `just demo-modules`
+  - `just demo-modules-game`
+  - demo sources under `demos/modules/`
+- Added module regression coverage for qualified parsing, namespace isolation,
+  unknown qualified names, and multi-file execution.
+- Documented the module MVP in `docs/module-system.md` and linked it from the
+  README.
+- Added support for top-level `let` bindings that persist across source lines.
+- Added support for user-defined variants with constructor payloads and pattern
+  matching.
+- Added string literal escape handling through the runner path and tuple
+  literals/patterns of arity three or greater.
+- Rebased stale regression baselines and added coverage for the text-adventure
+  round-trip scenario.
