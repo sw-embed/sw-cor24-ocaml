@@ -1,9 +1,10 @@
 number = 5
 slug = "issue-6-mutable-refs"
-status = "pending"
+status = "completed"
 description = "Implement GitHub issue #6: mutable references with ref, prefix ! dereference,..."
 role = "production"
 context_files = []
 created_at = "2026-04-26T07:30:01"
+completed_at = "2026-04-26T08:01:35"
 task_type = "implementation"
-commits = []
+commits = ["00f792ba22510d529df05f25a797e156ba453c9f"]
