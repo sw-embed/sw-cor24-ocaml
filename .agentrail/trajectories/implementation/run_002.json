@@ -1,0 +1,11 @@
+{
+  "task_type": "implementation",
+  "state": {
+    "number": 2,
+    "step": "issue-9-block-comments"
+  },
+  "action": "Implemented GitHub issue #9: block comments in source-file runs. scripts/run-ocaml.sh now strips standard OCaml (* ... *) comments before feeding the line-oriented interpreter, including nested comments and comments spanning physical lines. The stripping is string-literal aware, so text like \"not (* a comment *)\" is preserved. Empty/comment-only lines are skipped, and existing match-arm folding still composes with comments between arms. Added tests/eval_block_comments.ml and reg-rs baseline work/reg-rs/eval_block_comments.{rgt,out}. Updated CHANGES. Validation: focused eval_block_comments and eval_multiline_match passed; full just test passed with 81 tests. Closed GitHub issue #9. Code/docs commit: 5d41dc7.",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-26T07:41:31"
+}
