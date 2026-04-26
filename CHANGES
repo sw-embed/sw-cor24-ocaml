@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added `List.find_opt` and documented the higher-order list combinators
+  available for Tuplet compiler passes.
 - Added char literal syntax (`'a'`, `'\n'`, `'\\'`, `'\''`) plus
   `Char.code` and `Char.chr` for readable byte/ASCII comparisons.
 - Added source-file support for standard OCaml block comments `(* ... *)`,

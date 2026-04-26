@@ -103,6 +103,7 @@ var
   list_filter_noff: integer; list_filter_nlen: integer;
   list_fold_noff: integer; list_fold_nlen: integer;
   list_iter_noff: integer; list_iter_nlen: integer;
+  list_find_noff: integer; list_find_nlen: integer;
   string_of_int_noff: integer; string_of_int_nlen: integer;
   int_of_string_noff: integer; int_of_string_nlen: integer;
   soi_tmp: array[0..31] of char;
@@ -1183,7 +1184,12 @@ begin
   list_iter_noff := name_pool_len;
   pool_put('L'); pool_put('i'); pool_put('s'); pool_put('t'); pool_put('.');
   pool_put('i'); pool_put('t'); pool_put('e'); pool_put('r');
-  list_iter_nlen := 9
+  list_iter_nlen := 9;
+  list_find_noff := name_pool_len;
+  pool_put('L'); pool_put('i'); pool_put('s'); pool_put('t'); pool_put('.');
+  pool_put('f'); pool_put('i'); pool_put('n'); pool_put('d'); pool_put('_');
+  pool_put('o'); pool_put('p'); pool_put('t');
+  list_find_nlen := 13
 end;
 procedure intern_string_conv;
 begin
@@ -1523,6 +1529,21 @@ begin
     l := l^.tail end;
   list_fold_impl := acc end;
 
+function list_find_impl(f, l: PVal): PVal;
+var v: PVal;
+begin
+  while (l <> nil) and (l^.vk = VK_CONS) do begin
+    v := apply_val(f, l^.head);
+    if eval_error then begin list_find_impl := nil; exit end;
+    if (v^.vk = VK_BOOL) and (v^.ival <> 0) then begin
+      list_find_impl := mk_val_some(l^.head);
+      exit
+    end;
+    l := l^.tail
+  end;
+  list_find_impl := mk_val_none
+end;
+
 function string_of_int_impl(n: integer): PVal;
 var tmp_len, i: integer; is_neg: boolean; off, len: integer;
 begin
@@ -1652,6 +1673,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(list_fold_noff, list_fold_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, list_iter_noff, list_iter_nlen) then begin
       eval_expr := mk_val_closure(list_iter_noff, list_iter_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, list_find_noff, list_find_nlen) then begin
+      eval_expr := mk_val_closure(list_find_noff, list_find_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, string_of_int_noff, string_of_int_nlen) then begin
       eval_expr := mk_val_closure(string_of_int_noff, string_of_int_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, int_of_string_noff, int_of_string_nlen) then begin
@@ -1899,6 +1922,10 @@ begin eval_expr := nil;
           if fv^.ival = 0 then begin
             eval_expr := mk_partial(list_iter_noff, list_iter_nlen, 1, av, nil); exit end;
           eval_expr := list_iter_impl(fv^.head, av); exit end;
+        if names_equal(fv^.noff, fv^.nlen, list_find_noff, list_find_nlen) then begin
+          if fv^.ival = 0 then begin
+            eval_expr := mk_partial(list_find_noff, list_find_nlen, 1, av, nil); exit end;
+          eval_expr := list_find_impl(fv^.head, av); exit end;
         if names_equal(fv^.noff, fv^.nlen, list_fold_noff, list_fold_nlen) then begin
           if fv^.ival = 0 then begin
             eval_expr := mk_partial(list_fold_noff, list_fold_nlen, 1, av, nil); exit end;

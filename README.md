@@ -49,6 +49,7 @@ an AOT-compiled native COR24 binary.
 - `hd`, `tl`, `is_empty` -- list operations
 - `fst`, `snd` -- pair accessors
 - `List.length`, `List.rev`, `List.hd`, `List.tl`, `List.is_empty`
+- `List.map`, `List.filter`, `List.fold_left`, `List.iter`, `List.find_opt`
 
 **Chars**
 - `Char.code : char -> int` -- identity conversion in the integer target model
