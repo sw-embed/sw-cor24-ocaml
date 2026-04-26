@@ -113,6 +113,8 @@ var
   snd_noff: integer; snd_nlen: integer;
   none_noff: integer; none_nlen: integer;
   some_noff: integer; some_nlen: integer;
+  ok_ctor_tag: integer; error_ctor_tag: integer;
+  result_bind_noff: integer; result_bind_nlen: integer;
   fn_arg_noff: integer; fn_arg_nlen: integer;
   let_tmp_noff: integer; let_tmp_nlen: integer;
   print_endline_noff: integer; print_endline_nlen: integer;
@@ -1289,7 +1291,23 @@ begin
   name_pool[name_pool_len] := 'o'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'm'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
-  some_nlen := 4
+  some_nlen := 4;
+  ok_ctor_tag := ctor_count;
+  ctor_names_off[ctor_count] := name_pool_len;
+  pool_put('O'); pool_put('k');
+  ctor_names_len[ctor_count] := 2;
+  ctor_arity[ctor_count] := 1;
+  ctor_count := ctor_count + 1;
+  error_ctor_tag := ctor_count;
+  ctor_names_off[ctor_count] := name_pool_len;
+  pool_put('E'); pool_put('r'); pool_put('r'); pool_put('o'); pool_put('r');
+  ctor_names_len[ctor_count] := 5;
+  ctor_arity[ctor_count] := 1;
+  ctor_count := ctor_count + 1;
+  result_bind_noff := name_pool_len;
+  pool_put('R'); pool_put('e'); pool_put('s'); pool_put('u'); pool_put('l'); pool_put('t');
+  pool_put('.'); pool_put('b'); pool_put('i'); pool_put('n'); pool_put('d');
+  result_bind_nlen := 11
 end;
 procedure intern_fn_arg;
 begin
@@ -1784,6 +1802,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_none; exit end;
     if names_equal(e^.noff, e^.nlen, some_noff, some_nlen) then begin
       eval_expr := mk_val_closure(some_noff, some_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, result_bind_noff, result_bind_nlen) then begin
+      eval_expr := mk_val_closure(result_bind_noff, result_bind_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, print_endline_noff, print_endline_nlen) then begin
       eval_expr := mk_val_closure(print_endline_noff, print_endline_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, string_length_noff, string_length_nlen) then begin
@@ -1998,6 +2018,16 @@ begin eval_expr := nil;
           eval_expr := av^.tail; exit end;
         if names_equal(fv^.noff, fv^.nlen, some_noff, some_nlen) then begin
           eval_expr := mk_val_some(av); exit end;
+        if names_equal(fv^.noff, fv^.nlen, result_bind_noff, result_bind_nlen) then begin
+          if fv^.ival = 0 then begin
+            eval_expr := mk_partial(result_bind_noff, result_bind_nlen, 1, av, nil); exit end;
+          cur_field := fv^.head;
+          if cur_field^.vk <> VK_CTOR then begin eval_error := true; exit end;
+          if cur_field^.ival = ok_ctor_tag then begin
+            eval_expr := apply_val(av, cur_field^.head); exit end;
+          if cur_field^.ival = error_ctor_tag then begin
+            eval_expr := cur_field; exit end;
+          eval_error := true; exit end;
         if names_equal(fv^.noff, fv^.nlen, print_endline_noff, print_endline_nlen) then begin
           if av^.vk <> VK_STRING then begin eval_error := true; exit end;
           a := 0;

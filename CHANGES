@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a small `Result` path with built-in `Ok`, `Error`, and `Result.bind`
+  for composable parser/checker error propagation.
 - Added a record MVP: record type declarations, record construction, and
   lowercase field access such as `value.name`.
 - Added mutable references with `ref`, prefix dereference `!`, and assignment

@@ -27,6 +27,7 @@ an AOT-compiled native COR24 binary.
 - **Records**: `type t = { f : int }`, construction `{ f = e }`, and
   lowercase field access `value.f`
 - **Options**: `None`, `Some x`
+- **Results**: `Ok x`, `Error e`, and `Result.bind`
 - **Char literals**: `'a'`, `'\n'`, `'\\'`, `'\''`, represented as integer
   character codes on this target
 - **Pattern matching**: `match e with p1 -> e1 | p2 -> e2 | ...`
@@ -62,6 +63,10 @@ an AOT-compiled native COR24 binary.
 - `ref : 'a -> 'a ref`
 - `! : 'a ref -> 'a`
 - `:= : 'a ref -> 'a -> unit`
+
+**Results**
+- `Ok x`, `Error e` -- built-in result constructors
+- `Result.bind : result -> ('a -> result) -> result`
 
 ## Quick Start
 
