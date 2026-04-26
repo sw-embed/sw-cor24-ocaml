@@ -1,0 +1,9 @@
+number = 6
+slug = "issue-7-records"
+status = "pending"
+description = "Implement GitHub issue #7: record types and field access for Tuplet AST nodes..."
+role = "production"
+context_files = []
+created_at = "2026-04-26T07:30:16"
+task_type = "implementation"
+commits = []

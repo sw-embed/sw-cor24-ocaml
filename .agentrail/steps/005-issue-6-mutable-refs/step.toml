@@ -1,0 +1,9 @@
+number = 5
+slug = "issue-6-mutable-refs"
+status = "pending"
+description = "Implement GitHub issue #6: mutable references with ref, prefix ! dereference,..."
+role = "production"
+context_files = []
+created_at = "2026-04-26T07:30:01"
+task_type = "implementation"
+commits = []

@@ -1,0 +1,9 @@
+number = 3
+slug = "issue-10-char-literals"
+status = "pending"
+description = "Implement GitHub issue #10: char literal syntax and Char.code / Char.chr. Sup..."
+role = "production"
+context_files = []
+created_at = "2026-04-26T07:29:42"
+task_type = "implementation"
+commits = []
