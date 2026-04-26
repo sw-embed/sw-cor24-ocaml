@@ -1,0 +1,4 @@
+let t = (1, 42, "hello") in match t with (0, _, s) -> print_endline ("IDENT " ^ s) | (1, n, _) -> print_endline ("INT " ^ string_of_int n) | (_, _, _) -> print_endline "OTHER"
+let q = (1, 2, 3, 4) in match q with (1, _, 3, n) -> print_int n | (_, _, _, _) -> print_int 0
+(1, 2, 3)
+match (0, "name", 9) with (0, s, _) -> print_endline s | (_, _, _) -> print_endline "miss"

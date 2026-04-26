@@ -410,8 +410,10 @@ end;
 { === Parser === }
 function parse_expr: PExpr; forward;
 function parse_seq: PExpr; forward;
+function parse_tuple_tail: PExpr; forward;
 function parse_list_elements: PExpr; forward;
 function parse_pattern: PPat; forward;
+function parse_pattern_tuple_tail: PPat; forward;
 function parse_pattern_atom: PPat; forward;
 function parse_pattern_list: PPat; forward;
 function parse_match: PExpr; forward;
@@ -419,6 +421,18 @@ function parse_function_expr: PExpr; forward;
 function parse_fun_params: PExpr; forward;
 function is_atom_start: boolean;
 begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) or (tok=TK_STRING) end;
+function parse_tuple_tail: PExpr;
+var e, rest: PExpr;
+begin
+  e := parse_expr;
+  if parse_error then begin parse_tuple_tail := nil; exit end;
+  if tok = TK_COMMA then begin
+    lex_next;
+    rest := parse_tuple_tail;
+    parse_tuple_tail := mk_binop(OP_PAIR, e, rest)
+  end else
+    parse_tuple_tail := e
+end;
 function parse_atom: PExpr;
 var e: PExpr; i: integer;
 begin parse_atom := nil;
@@ -461,7 +475,7 @@ begin parse_atom := nil;
     e := parse_seq;
     if tok=TK_COMMA then begin
       lex_next;
-      e := mk_binop(OP_PAIR, e, parse_expr);
+      e := mk_binop(OP_PAIR, e, parse_tuple_tail);
       if tok=TK_RPAREN then lex_next else parse_error := true
     end
     else if tok=TK_RPAREN then lex_next
@@ -774,7 +788,7 @@ begin
     p := parse_pattern;
     if tok = TK_COMMA then begin
       lex_next;
-      sub := parse_pattern;
+      sub := parse_pattern_tuple_tail;
       p := mk_pat_pair(p, sub)
     end;
     if tok = TK_RPAREN then lex_next else parse_error := true;
@@ -782,6 +796,19 @@ begin
     exit
   end;
   parse_error := true
+end;
+
+function parse_pattern_tuple_tail: PPat;
+var p, rest: PPat;
+begin
+  p := parse_pattern;
+  if parse_error then begin parse_pattern_tuple_tail := nil; exit end;
+  if tok = TK_COMMA then begin
+    lex_next;
+    rest := parse_pattern_tuple_tail;
+    parse_pattern_tuple_tail := mk_pat_pair(p, rest)
+  end else
+    parse_pattern_tuple_tail := p
 end;
 
 function parse_pattern_list: PPat;

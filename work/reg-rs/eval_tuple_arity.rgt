@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_tuple_arity.ml"
+exit_code = 0

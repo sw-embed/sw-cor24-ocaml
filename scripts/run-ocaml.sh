@@ -30,6 +30,7 @@ fi
 
 CODE_PTR=$(cat "$BUILD_DIR/code_ptr_addr.txt")
 ML_INPUT=$(cat "$ML")
+ML_INPUT="${ML_INPUT//\\/\\\\}"
 
 UART_INPUT="${ML_INPUT}"$'\x04'"${OCAML_STDIN:-}"
 
