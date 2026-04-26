@@ -1,0 +1,1 @@
+Reproduced GitHub issue #1 command sequence on current feat/wip and found it no longer traps. Added demo_adventure_roundtrip reg-rs coverage for look/take/inventory/n/s/take/quit; focused demo_adventure checks pass and just test passes with 67 tests.

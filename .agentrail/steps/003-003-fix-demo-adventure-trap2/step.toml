@@ -1,6 +1,6 @@
 number = 3
 slug = "003-fix-demo-adventure-trap2"
-status = "in-progress"
+status = "completed"
 description = """
 Fix GitHub issue #1: demo_adventure traps with TRAP 2 when taking the lamp
 after a Cave -> Hall -> Cave round-trip.
@@ -15,4 +15,5 @@ context_files = [
     "scripts/run-ocaml.sh",
 ]
 created_at = "2026-04-25T00:00:00"
-commits = []
+completed_at = "2026-04-25T19:34:21"
+commits = ["f053411c46d0482717e59d84d4cec173161677de"]
