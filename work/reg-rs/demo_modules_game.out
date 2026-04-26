@@ -1,0 +1,11 @@
+> let __module = "Game_state"
+> type room = Hall | Cave | Vault
+> let describe room = match room with Hall -> "hall" | Cave -> "cave" | Vault -> "vault"
+> let score room has_lamp = match room with Hall -> 1 | Cave -> if has_lamp then 10 else 2 | Vault -> if has_lamp then 50 else 5
+> let __module = "Game_main"
+> print_endline (Game_state.describe Cave)
+cave
+> Game_state.score Cave true
+10
+> Game_state.score Vault false
+5

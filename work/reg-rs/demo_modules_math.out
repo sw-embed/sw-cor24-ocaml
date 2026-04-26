@@ -1,0 +1,11 @@
+> let __module = "Math"
+> let add x y = x + y
+> let square x = x * x
+> let cube x = x * square x
+> let __module = "Main"
+> Math.add 20 22
+42
+> Math.square 12
+144
+> Math.cube 5
+125

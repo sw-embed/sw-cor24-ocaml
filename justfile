@@ -53,6 +53,13 @@ demo-led:
 demo-lists:
     @./scripts/run-ocaml.sh tests/demo_lists_pairs.ml
 
+# Multi-file module demos
+demo-modules:
+    @./scripts/run-ocaml.sh demos/modules/math.ml demos/modules/main.ml
+
+demo-modules-game:
+    @./scripts/run-ocaml.sh demos/modules/game_state.ml demos/modules/game_main.ml
+
 # Run pattern matching demo (sum/length/map/filter/safe_div with match)
 demo-match:
     @./scripts/run-ocaml.sh tests/demo_patterns.ml

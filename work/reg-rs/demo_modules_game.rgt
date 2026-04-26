@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh demos/modules/game_state.ml demos/modules/game_main.ml"
+exit_code = 0
