@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/math.ml tests/module_unknown.ml"
+exit_code = 0

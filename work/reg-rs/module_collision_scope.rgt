@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/collide_a.ml tests/collide_b.ml tests/collide_main.ml"
+exit_code = 0

@@ -1,0 +1,9 @@
+> let __module = "Math"
+> let add x y = x + y
+> let square x = x * x
+> let double x = add x x
+> let __module = "Module_unknown"
+> Missing.value
+EVAL ERROR
+> Math.missing
+EVAL ERROR

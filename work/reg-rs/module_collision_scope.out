@@ -1,0 +1,17 @@
+> let __module = "Collide_a"
+> let value = 10
+> let pick x = value + x
+> let __module = "Collide_b"
+> let value = 100
+> let pick x = value + x
+> let __module = "Collide_main"
+> Collide_a.pick 1
+11
+> Collide_b.pick 1
+101
+> Collide_a.value
+10
+> Collide_b.value
+100
+> value
+EVAL ERROR
