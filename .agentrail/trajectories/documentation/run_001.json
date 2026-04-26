@@ -1,0 +1,11 @@
+{
+  "task_type": "documentation",
+  "state": {
+    "number": 7,
+    "step": "module-docs"
+  },
+  "action": "Reworked docs/module-system.md from exploratory notes into the implemented module MVP reference. The doc now covers filename-to-module-name derivation, multi-file run commands, name resolution rules, the reserved __module driver directive, examples, demos, and explicitly deferred OCaml module features. Updated README language features, demo commands, and documentation index to point at the module MVP. Validation: just demo-modules and just demo-modules-game both ran successfully after the doc updates. Docs commit: bf0f3eb.",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-25T21:00:43"
+}
