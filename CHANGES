@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added source-file support for multi-line `match ... with` arms, allowing
+  each `| PAT -> EXPR` arm to live on its own physical line.
 - Added a multi-file module MVP:
   - `scripts/run-ocaml.sh` accepts multiple `.ml` inputs.
   - Each source file becomes an implicit module named from the filename stem,

@@ -26,7 +26,8 @@ an AOT-compiled native COR24 binary.
 - **Options**: `None`, `Some x`
 - **Pattern matching**: `match e with p1 -> e1 | p2 -> e2 | ...`
   with patterns for ints, bools, wildcards, variables, lists,
-  pairs, and options
+  pairs, and options; source files may put each `| PAT -> EXPR` arm
+  on its own physical line
 - **Qualified names**: `List.length`, `List.rev` (dotted identifiers)
 - **Multi-file modules**: pass several `.ml` files to `run-ocaml.sh`; each
   file becomes an implicit module addressed as `Module.name`

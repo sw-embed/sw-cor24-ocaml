@@ -52,6 +52,30 @@ module_name_for_file() {
   printf '%s%s' "$(tr '[:lower:]' '[:upper:]' <<< "$first")" "$rest"
 }
 
+source_for_repl() {
+  awk '
+    /^[[:space:]]*\|/ {
+      if (have) {
+        line = $0
+        sub(/^[[:space:]]*/, "", line)
+        current = current " " line
+      } else {
+        current = $0
+        have = 1
+      }
+      next
+    }
+    {
+      if (have) print current
+      current = $0
+      have = 1
+    }
+    END {
+      if (have) print current
+    }
+  ' "$1"
+}
+
 CODE_PTR=$(cat "$BUILD_DIR/code_ptr_addr.txt")
 ML_INPUT=""
 if [ "${#ARGS[@]}" -eq 1 ]; then
@@ -60,7 +84,7 @@ if [ "${#ARGS[@]}" -eq 1 ]; then
     echo "error: source file not found: $ML" >&2
     exit 1
   fi
-  ML_INPUT="$(cat "$ML")"
+  ML_INPUT="$(source_for_repl "$ML")"
 else
   for ML in "${ARGS[@]}"; do
     if [ ! -f "$ML" ]; then
@@ -69,7 +93,7 @@ else
     fi
     MODULE_NAME="$(module_name_for_file "$ML")"
     ML_INPUT+="let __module = \"$MODULE_NAME\""$'\n'
-    ML_INPUT+="$(cat "$ML")"$'\n'
+    ML_INPUT+="$(source_for_repl "$ML")"$'\n'
   done
 fi
 ML_INPUT="${ML_INPUT//\\/\\\\}"
