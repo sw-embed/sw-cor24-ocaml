@@ -1,0 +1,11 @@
+{
+  "task_type": "implementation",
+  "state": {
+    "number": 1,
+    "step": "issue-5-multiline-match"
+  },
+  "action": "Implemented GitHub issue #5: multi-line match expressions for source-file runs. scripts/run-ocaml.sh now normalizes physical lines whose first non-space character is | by appending them to the previous logical line before feeding the line-oriented interpreter. This supports Tuplet-style match arms written one per line while leaving interactive REPL behavior unchanged. Added tests/eval_multiline_match.ml and reg-rs baseline work/reg-rs/eval_multiline_match.{rgt,out}. Updated README and CHANGES. Validation: focused eval_multiline_match passed, existing eval_tuple_arity passed, and full just test passed with 80 tests. Closed GitHub issue #5. Code/docs commit: 6081e38.",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-26T07:36:55"
+}
