@@ -2,7 +2,7 @@
 #
 # run-ocaml.sh -- Run an OCaml program on the COR24 interpreter
 #
-# Usage: ./scripts/run-ocaml.sh <file.ml> [max_instructions]
+# Usage: ./scripts/run-ocaml.sh <file.ml> [more.ml ...] [max_instructions]
 #
 # Requires build/ocaml.p24m and build/pvm.bin (run ./scripts/build.sh first)
 #
@@ -12,8 +12,22 @@
 # live terminal.
 set -euo pipefail
 
-ML="${1:?Usage: $0 <file.ml> [max_instructions]}"
-MAX_INSTRS="${2:-500000000}"
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 <file.ml> [more.ml ...] [max_instructions]" >&2
+  exit 1
+fi
+
+MAX_INSTRS="500000000"
+ARGS=("$@")
+LAST_INDEX=$((${#ARGS[@]} - 1))
+if [[ "${ARGS[$LAST_INDEX]}" != *.ml ]]; then
+  MAX_INSTRS="${ARGS[$LAST_INDEX]}"
+  unset 'ARGS[$LAST_INDEX]'
+fi
+if [ "${#ARGS[@]}" -lt 1 ]; then
+  echo "Usage: $0 <file.ml> [more.ml ...] [max_instructions]" >&2
+  exit 1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -28,8 +42,36 @@ if [ ! -f "$BUILD_DIR/ocaml.p24m" ]; then
   exit 1
 fi
 
+module_name_for_file() {
+  local path base stem first rest
+  path="$1"
+  base="$(basename "$path")"
+  stem="${base%.ml}"
+  first="${stem:0:1}"
+  rest="${stem:1}"
+  printf '%s%s' "$(tr '[:lower:]' '[:upper:]' <<< "$first")" "$rest"
+}
+
 CODE_PTR=$(cat "$BUILD_DIR/code_ptr_addr.txt")
-ML_INPUT=$(cat "$ML")
+ML_INPUT=""
+if [ "${#ARGS[@]}" -eq 1 ]; then
+  ML="${ARGS[0]}"
+  if [ ! -f "$ML" ]; then
+    echo "error: source file not found: $ML" >&2
+    exit 1
+  fi
+  ML_INPUT="$(cat "$ML")"
+else
+  for ML in "${ARGS[@]}"; do
+    if [ ! -f "$ML" ]; then
+      echo "error: source file not found: $ML" >&2
+      exit 1
+    fi
+    MODULE_NAME="$(module_name_for_file "$ML")"
+    ML_INPUT+="let __module = \"$MODULE_NAME\""$'\n'
+    ML_INPUT+="$(cat "$ML")"$'\n'
+  done
+fi
 ML_INPUT="${ML_INPUT//\\/\\\\}"
 
 UART_INPUT="${ML_INPUT}"$'\x04'"${OCAML_STDIN:-}"
