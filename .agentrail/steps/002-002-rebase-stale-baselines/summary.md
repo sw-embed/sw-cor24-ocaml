@@ -1,0 +1,1 @@
+Rebased the seven stale reg-rs baselines for lex_* assembler byte-count stderr and demo_* source-echo/stdout changes. Full just test passes: 66 passed.
