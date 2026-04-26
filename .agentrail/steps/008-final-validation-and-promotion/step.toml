@@ -1,9 +1,10 @@
 number = 8
 slug = "final-validation-and-promotion"
-status = "pending"
+status = "completed"
 description = "Run final validation for the module-system MVP: full just test, focused modul..."
 role = "validation"
 context_files = []
 created_at = "2026-04-25T20:30:21"
+completed_at = "2026-04-25T21:02:41"
 task_type = "release"
-commits = []
+commits = ["378e8d1fa373217e1df410e1625f6a84fe703984"]
