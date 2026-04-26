@@ -1,0 +1,20 @@
+> type room = Cave | Hall | Garden | Outside
+> type item = Lamp | Key
+> let item_str = function Lamp -> "lamp" | Key -> "key" in let help = fun u -> (print_endline "Commands: look, inventory (or inv), take, help, quit,"; print_endline "          or a direction: n, s, e, w") in let describe = function Cave -> print_endline "Damp cave. A lamp lies here. Exits: n." | Hall -> print_endline "Pillared hall. Exits: s, e, n (out)." | Garden -> print_endline "Sunlit garden. A key glints here. Exits: w." | Outside -> print_endline "You step into daylight. The end!" in let pickup = function Cave -> Some Lamp | Garden -> Some Key | _ -> None in let go = fun r d -> match r with Cave -> (if d = "n" then Some Hall else None) | Hall -> (if d = "s" then Some Cave else if d = "e" then Some Garden else if d = "n" then Some Outside else None) | Garden -> (if d = "w" then Some Hall else None) | _ -> None in let rec show_inv = fun inv -> match inv with [] -> () | h :: t -> (print_endline (item_str h); show_inv t) in let rec loop = fun st -> let r = fst st in let inv = snd st in let cmd = read_line () in if cmd = "quit" then (print_endline "bye"; exit 0) else if cmd = "help" then (help (); loop st) else if cmd = "look" then (describe r; loop st) else if (cmd = "inventory") || (cmd = "inv") then ((if List.is_empty inv then print_endline "(empty)" else show_inv inv); loop st) else if cmd = "take" then (match pickup r with None -> (print_endline "nothing here."; loop st) | Some it -> (print_endline ("you take the " ^ item_str it); loop (r, it :: inv))) else (match go r cmd with None -> (print_endline "you can't go that way. type 'help' for commands."; loop st) | Some Outside -> (describe Outside; exit 0) | Some r2 -> (describe r2; loop (r2, inv))) in (print_endline "=== tiny adventure ==="; help (); print_endline ""; describe Cave; loop (Cave, []))=== tiny adventure ===
+Commands: look, inventory (or inv), take, help, quit,
+          or a direction: n, s, e, w
+Damp cave. A lamp lies here. Exits: n.
+look
+Damp cave. A lamp lies here. Exits: n.
+take
+you take the lamp
+inventory
+lamp
+n
+Pillared hall. Exits: s, e, n (out).
+s
+Damp cave. A lamp lies here. Exits: n.
+take
+you take the lamp
+quit
+bye
