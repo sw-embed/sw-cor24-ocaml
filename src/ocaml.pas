@@ -17,13 +17,14 @@ const
   TK_DOT=56; TK_COMMA=57;
   TK_MATCH=21; TK_WITH=22; TK_FUNCTION=23; TK_PIPE=58;
   TK_STRING=59; TK_CARET=60; TK_BANG=61; TK_ASSIGN=62;
+  TK_LBRACE=63; TK_RBRACE=64; TK_COLON=65;
   TK_TYPE=24; TK_WHEN=25;
   TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
   EK_IF=6; EK_LET=7; EK_FUN=8; EK_APP=9;
   EK_NIL=10; EK_MATCH=11; EK_MATCH_ARM=12; EK_STRING=13;
-  EK_TYPEDECL=14;
+  EK_TYPEDECL=14; EK_RECORD=15; EK_FIELD=16;
   PK_WILDCARD=0; PK_INT=1; PK_BOOL=2; PK_VAR=3;
   PK_NIL=4; PK_CONS=5; PK_PAIR=6; PK_NONE=7; PK_SOME=8;
   PK_CTOR=9;
@@ -36,7 +37,7 @@ const
   VK_INT=1; VK_BOOL=2; VK_CLOSURE=3; VK_UNIT=4;
   VK_NIL=5; VK_CONS=6; VK_PAIR=7;
   VK_NONE=8; VK_SOME=9; VK_STRING=10;
-  VK_CTOR=11; VK_REF=12;
+  VK_CTOR=11; VK_REF=12; VK_RECORD=13; VK_FIELD=14;
 
 type
   PPat = ^Pat;
@@ -227,6 +228,8 @@ begin skip_ws_and_comments;
   if c = ')' then begin tok := TK_RPAREN; pos := pos+1; exit end;
   if c = ';' then begin tok := TK_SEMI; pos := pos+1; exit end;
   if c = '[' then begin tok := TK_LBRACKET; pos := pos+1; exit end;
+  if c = '{' then begin tok := TK_LBRACE; pos := pos+1; exit end;
+  if c = '}' then begin tok := TK_RBRACE; pos := pos+1; exit end;
   if c = '.' then begin tok := TK_DOT; pos := pos+1; exit end;
   if c = ',' then begin tok := TK_COMMA; pos := pos+1; exit end;
   if c = '^' then begin tok := TK_CARET; pos := pos+1; exit end;
@@ -289,7 +292,7 @@ begin skip_ws_and_comments;
     pos := pos+1;
     if (pos < src_len) and (src[pos] = ':') then begin tok := TK_COLONCOLON; pos := pos+1 end
     else if (pos < src_len) and (src[pos] = '=') then begin tok := TK_ASSIGN; pos := pos+1 end
-    else tok := TK_ERROR;
+    else tok := TK_COLON;
     exit
   end;
   if c = '!' then begin tok := TK_BANG; pos := pos+1; exit end;
@@ -478,7 +481,7 @@ function parse_match: PExpr; forward;
 function parse_function_expr: PExpr; forward;
 function parse_fun_params: PExpr; forward;
 function is_atom_start: boolean;
-begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) or (tok=TK_STRING) end;
+begin is_atom_start := (tok=TK_INT) or (tok=TK_TRUE) or (tok=TK_FALSE) or (tok=TK_IDENT) or (tok=TK_LPAREN) or (tok=TK_LBRACKET) or (tok=TK_LBRACE) or (tok=TK_STRING) end;
 function parse_tuple_tail: PExpr;
 var e, rest: PExpr;
 begin
@@ -492,7 +495,7 @@ begin
     parse_tuple_tail := e
 end;
 function parse_atom: PExpr;
-var e: PExpr; i: integer;
+var e, f, head, tail, val_e: PExpr; i, field_off, field_len: integer; first_upper: boolean;
 begin parse_atom := nil;
   if tok=TK_INT then begin parse_atom := mk_int(tok_int); lex_next; exit end;
   if tok=TK_TRUE then begin parse_atom := mk_bool(1); lex_next; exit end;
@@ -500,6 +503,7 @@ begin parse_atom := nil;
   if tok=TK_STRING then begin parse_atom := mk_string_expr(tok_str_off, tok_str_len); lex_next; exit end;
   if tok=TK_IDENT then begin
     { Create EK_VAR for the current ident first (tok_id still has it). }
+    first_upper := (tok_id_len > 0) and (tok_id[0] >= 'A') and (tok_id[0] <= 'Z');
     e := mk_var_node;
     lex_next;
     { If followed by '.ident', extend the name in the
@@ -509,24 +513,52 @@ begin parse_atom := nil;
     if tok = TK_DOT then begin
       lex_next;
       if tok <> TK_IDENT then begin parse_error := true; exit end;
-      if name_pool_len < NAME_POOL_MAX then begin
-        name_pool[name_pool_len] := '.';
-        name_pool_len := name_pool_len + 1;
-        e^.nlen := e^.nlen + 1
-      end;
-      i := 0;
-      while i < tok_id_len do begin
+      if first_upper then begin
         if name_pool_len < NAME_POOL_MAX then begin
-          name_pool[name_pool_len] := tok_id[i];
+          name_pool[name_pool_len] := '.';
           name_pool_len := name_pool_len + 1;
           e^.nlen := e^.nlen + 1
         end;
-        i := i + 1
+        i := 0;
+        while i < tok_id_len do begin
+          if name_pool_len < NAME_POOL_MAX then begin
+            name_pool[name_pool_len] := tok_id[i];
+            name_pool_len := name_pool_len + 1;
+            e^.nlen := e^.nlen + 1
+          end;
+          i := i + 1
+        end
+      end else begin
+        field_off := pool_intern; field_len := tok_id_len;
+        new(f); f^.kind := EK_FIELD; f^.ival := 0; f^.op := 0;
+        f^.noff := field_off; f^.nlen := field_len;
+        f^.left := e; f^.right := nil; f^.extra := nil; f^.pat := nil;
+        e := f
       end;
       lex_next
     end;
     if tok = TK_DOT then begin parse_error := true; exit end;
     parse_atom := e;
+    exit
+  end;
+  if tok=TK_LBRACE then begin
+    lex_next; head := nil; tail := nil;
+    while (tok <> TK_RBRACE) and not parse_error do begin
+      if tok <> TK_IDENT then begin parse_error := true; exit end;
+      field_off := pool_intern; field_len := tok_id_len;
+      lex_next;
+      if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
+      val_e := parse_expr;
+      new(f); f^.kind := EK_RECORD; f^.ival := 0; f^.op := 0;
+      f^.noff := field_off; f^.nlen := field_len;
+      f^.left := val_e; f^.right := nil; f^.extra := nil; f^.pat := nil;
+      if head = nil then head := f else tail^.right := f;
+      tail := f;
+      if tok=TK_SEMI then lex_next
+      else if tok <> TK_RBRACE then begin parse_error := true; exit end
+    end;
+    if tok=TK_RBRACE then lex_next else parse_error := true;
+    parse_atom := head;
     exit
   end;
   if tok=TK_LPAREN then begin lex_next;
@@ -680,10 +712,15 @@ begin parse_expr := nil;
     lex_next;
     if tok <> TK_EQ then begin parse_error := true; exit end;
     lex_next;
-    if tok = TK_PIPE then lex_next;
-    if not parse_ctor_decl then exit;
-    while tok = TK_PIPE do begin lex_next;
-      if not parse_ctor_decl then exit end;
+    if tok = TK_LBRACE then begin
+      while (tok <> TK_RBRACE) and (tok <> TK_EOF) do lex_next;
+      if tok = TK_RBRACE then lex_next else begin parse_error := true; exit end
+    end else begin
+      if tok = TK_PIPE then lex_next;
+      if not parse_ctor_decl then exit;
+      while tok = TK_PIPE do begin lex_next;
+        if not parse_ctor_decl then exit end
+    end;
     e := mk_int(0); e^.kind := EK_TYPEDECL; parse_expr := e; exit end;
   if tok=TK_LET then begin
     allow_decl := top_let_allowed;
@@ -1643,7 +1680,7 @@ begin new(p); p^.vk := VK_CLOSURE; p^.ival := stage;
   mk_partial := p end;
 
 function eval_expr(e: PExpr; env: PEnv): PVal;
-var lv, rv, fv, av, refv: PVal; l, r, x, bd, arm: PExpr; ne, ce: PEnv; a, b, res: integer;
+var lv, rv, fv, av, refv, rec_head, fieldv, cur_field: PVal; l, r, x, bd, arm: PExpr; ne, ce: PEnv; a, b, res: integer;
 begin eval_expr := nil;
   { Trampoline for tail-call optimization: tail-position calls (EK_IF/LET/
     MATCH/APP bodies) reassign (e, env) and loop rather than recursing,
@@ -1655,6 +1692,37 @@ begin eval_expr := nil;
   if e^.kind = EK_NIL then begin eval_expr := mk_val_nil; exit end;
   if e^.kind = EK_STRING then begin eval_expr := mk_val_string(e^.noff, e^.nlen); exit end;
   if e^.kind = EK_TYPEDECL then begin eval_expr := mk_val_unit; exit end;
+  if e^.kind = EK_RECORD then begin
+    rec_head := nil;
+    while e <> nil do begin
+      rv := eval_expr(e^.left, env);
+      if eval_error then exit;
+      new(fieldv); fieldv^.vk := VK_FIELD; fieldv^.ival := 0;
+      fieldv^.noff := e^.noff; fieldv^.nlen := e^.nlen;
+      fieldv^.body := nil; fieldv^.cenv := nil; fieldv^.head := rv; fieldv^.tail := rec_head;
+      rec_head := fieldv;
+      e := e^.right
+    end;
+    new(refv); refv^.vk := VK_RECORD; refv^.ival := 0; refv^.noff := 0; refv^.nlen := 0;
+    refv^.body := nil; refv^.cenv := nil; refv^.head := rec_head; refv^.tail := nil;
+    eval_expr := refv;
+    exit
+  end;
+  if e^.kind = EK_FIELD then begin
+    lv := eval_expr(e^.left, env);
+    if eval_error then exit;
+    if lv^.vk <> VK_RECORD then begin eval_error := true; exit end;
+    cur_field := lv^.head;
+    while cur_field <> nil do begin
+      if names_equal(cur_field^.noff, cur_field^.nlen, e^.noff, e^.nlen) then begin
+        eval_expr := cur_field^.head;
+        exit
+      end;
+      cur_field := cur_field^.tail
+    end;
+    eval_error := true;
+    exit
+  end;
   if e^.kind = EK_VAR then begin
     if names_equal(e^.noff, e^.nlen, print_int_noff, print_int_nlen) then begin
       eval_expr := mk_val_closure(print_int_noff, print_int_nlen, nil, nil); exit end;
@@ -2110,6 +2178,7 @@ begin
     end;
     exit end;
   if v^.vk = VK_REF then begin write('<ref>'); exit end;
+  if v^.vk = VK_RECORD then begin write('<record>'); exit end;
   if v^.vk = VK_CLOSURE then begin write('<fun>'); exit end;
   write('<?>')
 end;

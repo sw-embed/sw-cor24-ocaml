@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a record MVP: record type declarations, record construction, and
+  lowercase field access such as `value.name`.
 - Added mutable references with `ref`, prefix dereference `!`, and assignment
   `:=`, including closure-captured state and list registry use cases.
 - Added `List.find_opt` and documented the higher-order list combinators

@@ -24,6 +24,8 @@ an AOT-compiled native COR24 binary.
 - Comments: `(* ... *)` (nestable)
 - **Lists**: `[]`, `[1; 2; 3]`, cons `1 :: xs`, pretty-printed
 - **Pairs**: `(a, b)` tuples, pretty-printed
+- **Records**: `type t = { f : int }`, construction `{ f = e }`, and
+  lowercase field access `value.f`
 - **Options**: `None`, `Some x`
 - **Char literals**: `'a'`, `'\n'`, `'\\'`, `'\''`, represented as integer
   character codes on this target
