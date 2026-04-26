@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_toplevel_let.ml"
+exit_code = 0

@@ -42,7 +42,7 @@ echo "  [1/4] Compiling Pascal -> .spc (p24p)..."
 SPC_OUTPUT=$("$COR24_RUN" --run "$P24P_S" -u "$(cat "$SRC")"$'\x04' --speed 0 -t 120 -n "$MAX_INSTRS" 2>&1 | \
   grep -v '^\[UART' | sed 's/^UART output: //')
 
-if ! echo "$SPC_OUTPUT" | grep -q "; OK"; then
+if [[ "$SPC_OUTPUT" != *"; OK"* ]]; then
   echo "Pascal compilation failed:" >&2
   echo "$SPC_OUTPUT" | grep -i "error" >&2
   exit 1

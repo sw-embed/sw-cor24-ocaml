@@ -75,6 +75,7 @@ var
   string_pool: array[0..4095] of char; string_pool_len: integer;
   tok_str_off: integer; tok_str_len: integer;
   parse_error: boolean; eval_error: boolean; exit_requested: boolean;
+  top_let_allowed: boolean;
   match_success: boolean;
   print_int_noff: integer; print_int_nlen: integer;
   set_led_noff: integer; set_led_nlen: integer;
@@ -116,7 +117,7 @@ var
   ctor_names_off: array[0..63] of integer;
   ctor_names_len: array[0..63] of integer;
   ctor_count: integer;
-  ast: PExpr; result: PVal;
+  ast: PExpr; result: PVal; top_env: PEnv;
 
 function pool_intern: integer;
 var start, j: integer;
@@ -557,7 +558,7 @@ begin
 end;
 
 function parse_expr: PExpr;
-var e, val_e, body_e, match_e: PExpr; is_rec: boolean; my_noff, my_nlen: integer;
+var e, val_e, body_e, match_e: PExpr; is_rec, allow_decl: boolean; my_noff, my_nlen: integer;
     let_pat: PPat;
 begin parse_expr := nil;
   if tok=TK_TYPE then begin
@@ -573,7 +574,10 @@ begin parse_expr := nil;
       if tok <> TK_IDENT then begin parse_error := true; exit end;
       register_ctor; lex_next end;
     e := mk_int(0); e^.kind := EK_TYPEDECL; parse_expr := e; exit end;
-  if tok=TK_LET then begin lex_next; is_rec := false;
+  if tok=TK_LET then begin
+    allow_decl := top_let_allowed;
+    top_let_allowed := false;
+    lex_next; is_rec := false;
     if tok=TK_REC then begin is_rec := true; lex_next end;
     if is_rec then begin
       { let rec: require plain identifier, no patterns }
@@ -583,16 +587,19 @@ begin parse_expr := nil;
       if is_pat_start then begin
         val_e := parse_let_fun_params;
         if parse_error then exit;
-        if tok=TK_IN then lex_next else begin parse_error := true; exit end;
-        body_e := parse_seq;
+        if tok=TK_IN then begin lex_next; body_e := parse_seq end
+        else if allow_decl and (tok=TK_EOF) then body_e := nil
+        else begin parse_error := true; exit end;
         e := mk_let_node(val_e, body_e);
         e^.noff := my_noff; e^.nlen := my_nlen;
         e^.ival := 1; parse_expr := e; exit
       end;
       if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
       val_e := parse_expr;
-      if tok=TK_IN then lex_next else begin parse_error := true; exit end;
-      body_e := parse_seq; e := mk_let_node(val_e, body_e);
+      if tok=TK_IN then begin lex_next; body_e := parse_seq end
+      else if allow_decl and (tok=TK_EOF) then body_e := nil
+      else begin parse_error := true; exit end;
+      e := mk_let_node(val_e, body_e);
       e^.noff := my_noff; e^.nlen := my_nlen;
       e^.ival := 1; parse_expr := e; exit
     end;
@@ -607,16 +614,29 @@ begin parse_expr := nil;
     if (let_pat^.pk = PK_VAR) and is_pat_start then begin
       val_e := parse_let_fun_params;
       if parse_error then exit;
-      if tok=TK_IN then lex_next else begin parse_error := true; exit end;
-      body_e := parse_seq;
+      if tok=TK_IN then begin lex_next; body_e := parse_seq end
+      else if allow_decl and (tok=TK_EOF) then body_e := nil
+      else begin parse_error := true; exit end;
       e := mk_let_node(val_e, body_e);
       e^.noff := let_pat^.noff; e^.nlen := let_pat^.nlen;
+      if body_e = nil then e^.pat := let_pat;
       parse_expr := e; exit
     end;
     if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
     val_e := parse_expr;
-    if tok=TK_IN then lex_next else begin parse_error := true; exit end;
-    body_e := parse_seq;
+    if tok=TK_IN then begin lex_next; body_e := parse_seq end
+    else if allow_decl and (tok=TK_EOF) then body_e := nil
+    else begin parse_error := true; exit end;
+    if body_e = nil then begin
+      e := mk_let_node(val_e, nil);
+      e^.pat := let_pat;
+      if let_pat^.pk = PK_VAR then begin
+        e^.noff := let_pat^.noff; e^.nlen := let_pat^.nlen
+      end else begin
+        e^.noff := let_tmp_noff; e^.nlen := let_tmp_nlen
+      end;
+      parse_expr := e; exit
+    end;
     if let_pat^.pk = PK_VAR then begin
       e := mk_let_node(val_e, body_e);
       e^.noff := let_pat^.noff; e^.nlen := let_pat^.nlen
@@ -1209,6 +1229,7 @@ begin
 
   if p^.pk = PK_INT then begin
     if (v^.vk = VK_INT) and (v^.ival = p^.ival) then exit;
+    if (p^.ival = 0) and (v^.vk = VK_UNIT) then exit;
     match_success := false; exit
   end;
 
@@ -1699,6 +1720,35 @@ begin eval_expr := nil;
   end  { while true }
 end;
 
+function eval_toplevel_decl(e: PExpr; env: PEnv): PEnv;
+var lv, rv: PVal; ne: PEnv;
+begin
+  eval_toplevel_decl := env;
+  if e = nil then begin eval_error := true; exit end;
+  if e^.kind = EK_TYPEDECL then exit;
+  if (e^.kind <> EK_LET) or (e^.right <> nil) then begin eval_error := true; exit end;
+
+  if e^.ival = 1 then begin
+    lv := mk_val_closure(0, 0, nil, nil);
+    ne := env_extend(env, e^.noff, e^.nlen, lv);
+    rv := eval_expr(e^.left, ne);
+    if eval_error then exit;
+    lv^.vk := rv^.vk; lv^.ival := rv^.ival; lv^.noff := rv^.noff; lv^.nlen := rv^.nlen;
+    lv^.body := rv^.body; lv^.cenv := ne;
+    eval_toplevel_decl := ne;
+    exit
+  end;
+
+  lv := eval_expr(e^.left, env);
+  if eval_error then exit;
+  if e^.pat <> nil then begin
+    ne := try_match(e^.pat, lv, env);
+    if not match_success then begin eval_error := true; exit end;
+    eval_toplevel_decl := ne
+  end else
+    eval_toplevel_decl := env_extend(env, e^.noff, e^.nlen, lv)
+end;
+
 { === Value pretty-printer === }
 
 procedure print_value(v: PVal); forward;
@@ -1775,6 +1825,7 @@ begin
   intern_fn_arg;
   intern_string_ops;
   exit_requested := false;
+  top_env := nil;
   while (not eof) and (not exit_requested) do begin
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);
@@ -1783,11 +1834,16 @@ begin
     if src_len > 0 then begin
       parse_error := false;
       eval_error := false;
+      top_let_allowed := true;
       lex_next;
       ast := parse_seq;
       if parse_error then begin write('PARSE ERROR'); crlf end
       else begin
-        result := eval_expr(ast, nil);
+        if ((ast^.kind = EK_LET) and (ast^.right = nil)) or (ast^.kind = EK_TYPEDECL) then begin
+          top_env := eval_toplevel_decl(ast, top_env);
+          result := mk_val_unit
+        end else
+          result := eval_expr(ast, top_env);
         if eval_error then begin write('EVAL ERROR'); crlf end
         else if result^.vk = VK_INT then begin write(result^.ival); crlf end
         else if result^.vk = VK_BOOL then begin
