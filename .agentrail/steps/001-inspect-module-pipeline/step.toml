@@ -1,0 +1,9 @@
+number = 1
+slug = "inspect-module-pipeline"
+status = "pending"
+description = "Read docs/module-system.md and the current compiler/runtime scripts to turn t..."
+role = "production"
+context_files = []
+created_at = "2026-04-25T20:29:44"
+task_type = "planning"
+commits = []

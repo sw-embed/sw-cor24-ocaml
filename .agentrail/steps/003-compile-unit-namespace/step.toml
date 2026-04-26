@@ -1,0 +1,9 @@
+number = 3
+slug = "compile-unit-namespace"
+status = "pending"
+description = "Add compile-unit/module identity to the compiler pipeline. Derive module name..."
+role = "production"
+context_files = []
+created_at = "2026-04-25T20:29:54"
+task_type = "implementation"
+commits = []

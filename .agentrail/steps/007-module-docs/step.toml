@@ -1,0 +1,9 @@
+number = 7
+slug = "module-docs"
+status = "pending"
+description = "Update documentation for the implemented module MVP. Turn docs/module-system...."
+role = "production"
+context_files = []
+created_at = "2026-04-25T20:30:15"
+task_type = "documentation"
+commits = []

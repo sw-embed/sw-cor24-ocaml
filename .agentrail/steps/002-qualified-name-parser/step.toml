@@ -1,0 +1,9 @@
+number = 2
+slug = "qualified-name-parser"
+status = "pending"
+description = "Implement parser and AST support for qualified value references such as Math...."
+role = "production"
+context_files = []
+created_at = "2026-04-25T20:29:49"
+task_type = "implementation"
+commits = []

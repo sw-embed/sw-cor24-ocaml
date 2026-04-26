@@ -1,0 +1,9 @@
+number = 8
+slug = "final-validation-and-promotion"
+status = "pending"
+description = "Run final validation for the module-system MVP: full just test, focused modul..."
+role = "validation"
+context_files = []
+created_at = "2026-04-25T20:30:21"
+task_type = "release"
+commits = []

@@ -1,0 +1,9 @@
+number = 6
+slug = "module-demos"
+status = "pending"
+description = "Add user-facing demos for multi-file applications. Provide a minimal Math/Mai..."
+role = "production"
+context_files = []
+created_at = "2026-04-25T20:30:11"
+task_type = "demos"
+commits = []

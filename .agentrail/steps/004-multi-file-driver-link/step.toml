@@ -1,0 +1,9 @@
+number = 4
+slug = "multi-file-driver-link"
+status = "pending"
+description = "Teach the run/build path to accept multiple .ml inputs and compile them as on..."
+role = "production"
+context_files = []
+created_at = "2026-04-25T20:29:59"
+task_type = "implementation"
+commits = []

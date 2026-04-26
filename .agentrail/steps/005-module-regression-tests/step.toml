@@ -1,0 +1,9 @@
+number = 5
+slug = "module-regression-tests"
+status = "pending"
+description = "Add focused automated coverage for the module MVP. Include reg-rs tests and s..."
+role = "validation"
+context_files = []
+created_at = "2026-04-25T20:30:05"
+task_type = "testing"
+commits = []

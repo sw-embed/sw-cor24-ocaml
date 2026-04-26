@@ -1,0 +1,1 @@
+Add user-facing demos for multi-file applications. Provide a minimal Math/Main demo and one richer demo that mirrors realistic decomposition, for example Game_state plus Main or Util plus Main. Add justfile targets or documented commands so users can run the demos directly. Commit generated reg-rs baselines for demo outputs where this repo normally tracks them.
