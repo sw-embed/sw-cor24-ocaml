@@ -15,6 +15,7 @@ an AOT-compiled native COR24 binary.
 - Integer literals, arithmetic (`+`, `-`, `*`, `/`, `mod`)
 - Comparisons (`=`, `<>`, `<`, `>`, `<=`, `>=`) and booleans (`&&`, `||`, `not`)
 - Variables and `let` bindings, `let rec` for recursion
+- Mutable references: `ref`, prefix dereference `!r`, assignment `r := v`
 - Conditionals (`if`/`then`/`else`)
 - First-class functions: `fun x -> body`, multi-arg `fun x y z -> body`
 - Function application by juxtaposition: `f x`, `f x y`
@@ -54,6 +55,11 @@ an AOT-compiled native COR24 binary.
 **Chars**
 - `Char.code : char -> int` -- identity conversion in the integer target model
 - `Char.chr : int -> char` -- validates 0..255 and returns the integer code
+
+**References**
+- `ref : 'a -> 'a ref`
+- `! : 'a ref -> 'a`
+- `:= : 'a ref -> 'a -> unit`
 
 ## Quick Start
 

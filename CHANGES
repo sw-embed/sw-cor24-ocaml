@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added mutable references with `ref`, prefix dereference `!`, and assignment
+  `:=`, including closure-captured state and list registry use cases.
 - Added `List.find_opt` and documented the higher-order list combinators
   available for Tuplet compiler passes.
 - Added char literal syntax (`'a'`, `'\n'`, `'\\'`, `'\''`) plus
