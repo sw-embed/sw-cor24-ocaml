@@ -1,9 +1,10 @@
 number = 4
 slug = "issue-8-list-combinators"
-status = "pending"
+status = "completed"
 description = "Implement GitHub issue #8: useful List combinators for Tuplet compiler passes..."
 role = "production"
 context_files = []
 created_at = "2026-04-26T07:29:51"
+completed_at = "2026-04-26T07:53:03"
 task_type = "implementation"
-commits = []
+commits = ["6cf5dfb02b942ce5538a1f693e96fca8f28f162b"]
