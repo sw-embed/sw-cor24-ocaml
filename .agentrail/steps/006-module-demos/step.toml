@@ -1,9 +1,10 @@
 number = 6
 slug = "module-demos"
-status = "pending"
+status = "completed"
 description = "Add user-facing demos for multi-file applications. Provide a minimal Math/Mai..."
 role = "production"
 context_files = []
 created_at = "2026-04-25T20:30:11"
+completed_at = "2026-04-25T20:59:36"
 task_type = "demos"
-commits = []
+commits = ["f7136ca252336239a6298b0a9c959a32a4f3e334"]

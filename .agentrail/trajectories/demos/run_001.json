@@ -1,0 +1,11 @@
+{
+  "task_type": "demos",
+  "state": {
+    "number": 6,
+    "step": "module-demos"
+  },
+  "action": "Added user-facing module demos. demo-modules runs demos/modules/math.ml plus demos/modules/main.ml and shows Math.add, Math.square, and Math.cube from a second file. demo-modules-game runs demos/modules/game_state.ml plus demos/modules/game_main.ml and demonstrates a small decomposed app using an ADT, pattern matching, print_endline, and qualified calls into Game_state. Added justfile targets demo-modules and demo-modules-game plus reg-rs baselines demo_modules_math and demo_modules_game. Validation: both just demo targets ran successfully, both focused demo reg-rs tests passed, and full just test passed with 79 tests. Demo commit: f7136ca.",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-25T20:59:36"
+}
