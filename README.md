@@ -28,6 +28,8 @@ an AOT-compiled native COR24 binary.
   with patterns for ints, bools, wildcards, variables, lists,
   pairs, and options
 - **Qualified names**: `List.length`, `List.rev` (dotted identifiers)
+- **Multi-file modules**: pass several `.ml` files to `run-ocaml.sh`; each
+  file becomes an implicit module addressed as `Module.name`
 
 ## Built-in Primitives
 
@@ -62,6 +64,8 @@ just demo          # one-shot: print_int 42
 just demo-fact     # factorial
 just demo-led      # LED toggle demo
 just demo-lists    # lists, pairs, sum/length/map
+just demo-modules  # multi-file Math/Main module demo
+just demo-modules-game # multi-file Game_state/Game_main demo
 just demo-match    # pattern matching (idiomatic map/filter/safe_div)
 ```
 
@@ -137,6 +141,7 @@ let rec map = fun f l -> match l with [] -> [] | h :: t -> f h :: map f t in map
 - `docs/architecture.md` -- System architecture and runtime stack
 - `docs/design.md` -- Grammar, AST, and value representations
 - `docs/plan.md` -- Implementation plan
+- `docs/module-system.md` -- Multi-file module MVP
 - `docs/research.txt` -- Research notes on OCaml implementation strategy
 
 ## License
