@@ -114,6 +114,8 @@ var
   let_tmp_noff: integer; let_tmp_nlen: integer;
   print_endline_noff: integer; print_endline_nlen: integer;
   string_length_noff: integer; string_length_nlen: integer;
+  module_directive_noff: integer; module_directive_nlen: integer;
+  current_module: array[0..63] of char; current_module_len: integer;
   ctor_names_off: array[0..63] of integer;
   ctor_names_len: array[0..63] of integer;
   ctor_arity: array[0..63] of integer;
@@ -336,6 +338,34 @@ function mk_var_ref(off, len: integer): PExpr;
 var n: PExpr;
 begin new(n); n^.kind := EK_VAR; n^.ival := 0; n^.op := 0; n^.noff := off; n^.nlen := len;
   n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_var_ref := n end;
+
+function qualified_name(off, len: integer): integer;
+var qoff, i: integer;
+begin
+  if current_module_len = 0 then begin qualified_name := off; exit end;
+  qoff := name_pool_len;
+  i := 0;
+  while i < current_module_len do begin
+    if name_pool_len < NAME_POOL_MAX then begin
+      name_pool[name_pool_len] := current_module[i];
+      name_pool_len := name_pool_len + 1
+    end;
+    i := i + 1
+  end;
+  if name_pool_len < NAME_POOL_MAX then begin
+    name_pool[name_pool_len] := '.';
+    name_pool_len := name_pool_len + 1
+  end;
+  i := 0;
+  while i < len do begin
+    if name_pool_len < NAME_POOL_MAX then begin
+      name_pool[name_pool_len] := name_pool[off + i];
+      name_pool_len := name_pool_len + 1
+    end;
+    i := i + 1
+  end;
+  qualified_name := qoff
+end;
 
 function mk_pat_wildcard: PPat;
 var p: PPat;
@@ -943,6 +973,28 @@ begin env_lookup := nil; cur := env;
 function env_extend(env: PEnv; noff, nlen: integer; v: PVal): PEnv;
 var e: PEnv;
 begin new(e); e^.noff := noff; e^.nlen := nlen; e^.val := v; e^.next := env; env_extend := e end;
+function name_has_dot(noff, nlen: integer): boolean;
+var i: integer;
+begin
+  name_has_dot := false;
+  i := 0;
+  while i < nlen do begin
+    if name_pool[noff + i] = '.' then begin name_has_dot := true; exit end;
+    i := i + 1
+  end
+end;
+function env_strip_unqualified(env: PEnv): PEnv;
+var cur, res: PEnv;
+begin
+  res := nil;
+  cur := env;
+  while cur <> nil do begin
+    if name_has_dot(cur^.noff, cur^.nlen) then
+      res := env_extend(res, cur^.noff, cur^.nlen, cur^.val);
+    cur := cur^.next
+  end;
+  env_strip_unqualified := res
+end;
 function mk_val_int(v: integer): PVal;
 var p: PVal;
 begin new(p); p^.vk := VK_INT; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_int := p end;
@@ -1200,6 +1252,19 @@ begin
   name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
   string_length_nlen := 13
+end;
+procedure intern_module_directive;
+begin
+  module_directive_noff := name_pool_len;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '_'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'm'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'o'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'd'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'u'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'l'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  module_directive_nlen := 8
 end;
 procedure intern_board;
 begin
@@ -1795,16 +1860,37 @@ begin eval_expr := nil;
 end;
 
 function eval_toplevel_decl(e: PExpr; env: PEnv): PEnv;
-var lv, rv: PVal; ne: PEnv;
+var lv, rv: PVal; ne: PEnv; dir_expr: PExpr; top_pat: PPat; qoff, qlen, i: integer;
 begin
   eval_toplevel_decl := env;
   if e = nil then begin eval_error := true; exit end;
   if e^.kind = EK_TYPEDECL then exit;
   if (e^.kind <> EK_LET) or (e^.right <> nil) then begin eval_error := true; exit end;
 
+  if names_equal(e^.noff, e^.nlen, module_directive_noff, module_directive_nlen) then begin
+    dir_expr := e^.left;
+    if dir_expr = nil then begin eval_error := true; exit end;
+    if dir_expr^.kind <> EK_STRING then begin eval_error := true; exit end;
+    current_module_len := 0;
+    i := 0;
+    while (i < dir_expr^.nlen) and (current_module_len < 64) do begin
+      current_module[current_module_len] := string_pool[dir_expr^.noff + i];
+      current_module_len := current_module_len + 1;
+      i := i + 1
+    end;
+    eval_toplevel_decl := env_strip_unqualified(env);
+    exit
+  end;
+
   if e^.ival = 1 then begin
     lv := mk_val_closure(0, 0, nil, nil);
-    ne := env_extend(env, e^.noff, e^.nlen, lv);
+    if current_module_len > 0 then begin
+      qoff := qualified_name(e^.noff, e^.nlen);
+      qlen := current_module_len + 1 + e^.nlen;
+      ne := env_extend(env, qoff, qlen, lv);
+      ne := env_extend(ne, e^.noff, e^.nlen, lv)
+    end else
+      ne := env_extend(env, e^.noff, e^.nlen, lv);
     rv := eval_expr(e^.left, ne);
     if eval_error then exit;
     lv^.vk := rv^.vk; lv^.ival := rv^.ival; lv^.noff := rv^.noff; lv^.nlen := rv^.nlen;
@@ -1816,9 +1902,19 @@ begin
   lv := eval_expr(e^.left, env);
   if eval_error then exit;
   if e^.pat <> nil then begin
-    ne := try_match(e^.pat, lv, env);
-    if not match_success then begin eval_error := true; exit end;
-    eval_toplevel_decl := ne
+    top_pat := e^.pat;
+    if top_pat^.pk <> PK_VAR then begin
+      ne := try_match(top_pat, lv, env);
+      if not match_success then begin eval_error := true; exit end;
+      eval_toplevel_decl := ne;
+      exit
+    end
+  end;
+  if current_module_len > 0 then begin
+    qoff := qualified_name(e^.noff, e^.nlen);
+    qlen := current_module_len + 1 + e^.nlen;
+    ne := env_extend(env, qoff, qlen, lv);
+    eval_toplevel_decl := env_extend(ne, e^.noff, e^.nlen, lv)
   end else
     eval_toplevel_decl := env_extend(env, e^.noff, e^.nlen, lv)
 end;
@@ -1904,7 +2000,9 @@ begin
   intern_option;
   intern_fn_arg;
   intern_string_ops;
+  intern_module_directive;
   exit_requested := false;
+  current_module_len := 0;
   top_env := nil;
   while (not eof) and (not exit_requested) do begin
     { Print prompt: "> " }

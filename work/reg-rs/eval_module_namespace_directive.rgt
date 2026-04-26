@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_module_namespace_directive.ml"
+exit_code = 0
