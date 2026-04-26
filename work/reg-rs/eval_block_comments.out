@@ -1,0 +1,8 @@
+> let x = 40  + 2
+> let y = "not (* a comment *)"
+> x
+42
+> String.length y
+19
+> let z = match Some 3 with | None -> 0 | Some n -> n + x
+> z45

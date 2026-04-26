@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_block_comments.ml"
+exit_code = 0

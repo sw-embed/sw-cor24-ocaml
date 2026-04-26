@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added source-file support for standard OCaml block comments `(* ... *)`,
+  including nested comments and comments spanning physical lines.
 - Added source-file support for multi-line `match ... with` arms, allowing
   each `| PAT -> EXPR` arm to live on its own physical line.
 - Added a multi-file module MVP:

@@ -54,24 +54,67 @@ module_name_for_file() {
 
 source_for_repl() {
   awk '
-    /^[[:space:]]*\|/ {
-      if (have) {
-        line = $0
-        sub(/^[[:space:]]*/, "", line)
-        current = current " " line
-      } else {
-        current = $0
-        have = 1
+    function emit_logical(line) {
+      if (line ~ /^[[:space:]]*$/) return
+      if (line ~ /^[[:space:]]*\|/) {
+        if (have) {
+          sub(/^[[:space:]]*/, "", line)
+          current = current " " line
+        } else {
+          current = line
+          have = 1
+        }
+        return
       }
-      next
+      if (have) print current
+      current = line
+      have = 1
     }
     {
-      if (have) print current
-      current = $0
-      have = 1
+      out = ""
+      in_string = 0
+      esc = 0
+      for (i = 1; i <= length($0); i++) {
+        c = substr($0, i, 1)
+        n = substr($0, i + 1, 1)
+        if (depth > 0) {
+          if (c == "(" && n == "*") {
+            depth++
+            i++
+          } else if (c == "*" && n == ")") {
+            depth--
+            i++
+          }
+          continue
+        }
+        if (in_string) {
+          out = out c
+          if (esc) {
+            esc = 0
+          } else if (c == "\\") {
+            esc = 1
+          } else if (c == "\"") {
+            in_string = 0
+          }
+          continue
+        }
+        if (c == "\"") {
+          out = out c
+          in_string = 1
+          continue
+        }
+        if (c == "(" && n == "*") {
+          depth = 1
+          i++
+          continue
+        }
+        out = out c
+      }
+      emit_logical(out)
     }
     END {
       if (have) print current
+      if (depth > 0) exit 2
     }
   ' "$1"
 }
