@@ -73,7 +73,13 @@ if [ -z "$CODE_PTR" ]; then
   exit 1
 fi
 echo "$CODE_PTR" > "$BUILD_DIR/code_ptr_addr.txt"
-echo "  [5/5] ok (code_ptr @ 0x$CODE_PTR)"
+HEAP_LIMIT=$(grep -A1 "heap_limit:" "$BUILD_DIR/pvm.lst" | tail -1 | awk '{print $1}' | tr -d ':')
+if [ -z "$HEAP_LIMIT" ]; then
+  echo "Error: could not resolve heap_limit from PVM listing" >&2
+  exit 1
+fi
+echo "$HEAP_LIMIT" > "$BUILD_DIR/heap_limit_addr.txt"
+echo "  [5/5] ok (code_ptr @ 0x$CODE_PTR, heap_limit @ 0x$HEAP_LIMIT)"
 
 echo ""
 echo "Build complete:"
@@ -81,3 +87,4 @@ echo "  ocaml.p24  (base 0, for pv24t / interactive demos)"
 echo "  ocaml.p24m (relocated to 0x040000, for cor24-run / regression / embedded)"
 echo "  pvm.bin    (for cor24-run path)"
 echo "  Code ptr:  0x$CODE_PTR"
+echo "  Heap lim:  0x$HEAP_LIMIT"

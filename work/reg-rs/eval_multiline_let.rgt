@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_multiline_let.ml"
+exit_code = 0

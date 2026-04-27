@@ -56,7 +56,10 @@ source_for_repl() {
   awk '
     function emit_logical(line) {
       if (line ~ /^[[:space:]]*$/) return
-      if (line ~ /^[[:space:]]*\|/) {
+      # Continuation lines: leading whitespace (indented body of a multi-line
+      # let/match/if) or starting with `|` (match arm). Both fold into the
+      # current logical line so the REPL sees one statement, not five.
+      if (line ~ /^[[:space:]]+/) {
         if (have) {
           sub(/^[[:space:]]*/, "", line)
           current = current " " line
@@ -120,6 +123,7 @@ source_for_repl() {
 }
 
 CODE_PTR=$(cat "$BUILD_DIR/code_ptr_addr.txt")
+HEAP_LIMIT=$(cat "$BUILD_DIR/heap_limit_addr.txt")
 ML_INPUT=""
 if [ "${#ARGS[@]}" -eq 1 ]; then
   ML="${ARGS[0]}"
@@ -146,7 +150,7 @@ UART_INPUT="${ML_INPUT}"$'\x04'"${OCAML_STDIN:-}"
 "$COR24_RUN" --load-binary "$BUILD_DIR/pvm.bin@0" \
   --load-binary "$BUILD_DIR/ocaml.p24m@0x040000" \
   --patch "0x${CODE_PTR}=0x040000" \
-  --patch 0x1094=0x03F000 \
+  --patch "0x${HEAP_LIMIT}=0x03F000" \
   --entry 0 -u "${UART_INPUT}" --speed 0 -n "$MAX_INSTRS" 2>&1 | \
   awk '
     /^UART output:/ { in_out = 1; sub(/^UART output: /, ""); }
