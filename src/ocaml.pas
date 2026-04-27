@@ -27,7 +27,7 @@ const
   EK_TYPEDECL=14; EK_RECORD=15; EK_FIELD=16;
   PK_WILDCARD=0; PK_INT=1; PK_BOOL=2; PK_VAR=3;
   PK_NIL=4; PK_CONS=5; PK_PAIR=6; PK_NONE=7; PK_SOME=8;
-  PK_CTOR=9;
+  PK_CTOR=9; PK_STRING=10;
   OP_ADD=30; OP_SUB=31; OP_MUL=32; OP_DIV=33; OP_MOD=20;
   OP_EQ=34; OP_NEQ=35; OP_LT=36; OP_GT=37;
   OP_LE=38; OP_GE=39; OP_AND=40; OP_OR=41; OP_NOT=19;
@@ -845,11 +845,14 @@ end;
 { === Pattern parser === }
 
 function parse_pattern_atom: PPat;
-var p, sub: PPat; off, sub_i: integer;
+var p, sub: PPat; off, sub_i, j, plen: integer; first_upper: boolean;
 begin
   parse_pattern_atom := nil;
   if tok = TK_INT then begin
     parse_pattern_atom := mk_pat_int(tok_int); lex_next; exit end;
+  if tok = TK_STRING then begin
+    new(p); p^.pk := PK_STRING; p^.ival := 0; p^.noff := tok_str_off; p^.nlen := tok_str_len; p^.sub1 := nil; p^.sub2 := nil;
+    parse_pattern_atom := p; lex_next; exit end;
   if tok = TK_MINUS then begin
     lex_next;
     if tok <> TK_INT then begin parse_error := true; exit end;
@@ -874,10 +877,34 @@ begin
       parse_pattern_atom := mk_pat_some(sub);
       exit
     end;
-    off := pool_intern;
-    sub_i := ctor_lookup(off, tok_id_len);
-    if sub_i >= 0 then begin
+    first_upper := (tok_id_len > 0) and (tok_id[0] >= 'A') and (tok_id[0] <= 'Z');
+    off := pool_intern; plen := tok_id_len;
+    lex_next;
+    { Qualified ctor: Module.Ctor — extend name_pool with '.next_ident'.
+      Mirrors the expression parser's handling at parse_atom (TK_DOT). }
+    if first_upper and (tok = TK_DOT) then begin
       lex_next;
+      if tok <> TK_IDENT then begin parse_error := true; exit end;
+      if name_pool_len < NAME_POOL_MAX then begin
+        name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len + 1; plen := plen + 1
+      end;
+      j := 0;
+      while j < tok_id_len do begin
+        if name_pool_len < NAME_POOL_MAX then begin
+          name_pool[name_pool_len] := tok_id[j]; name_pool_len := name_pool_len + 1; plen := plen + 1
+        end;
+        j := j + 1
+      end;
+      lex_next
+    end;
+    sub_i := ctor_lookup(off, plen);
+    if sub_i < 0 then begin
+      { Fallback: try the suffix after the last '.'. }
+      j := plen - 1;
+      while (j >= 0) and (name_pool[off + j] <> '.') do j := j - 1;
+      if j >= 0 then sub_i := ctor_lookup(off + j + 1, plen - j - 1)
+    end;
+    if sub_i >= 0 then begin
       if ctor_arity[sub_i] > 0 then begin
         sub := parse_pattern_atom;
         if parse_error then exit;
@@ -886,8 +913,8 @@ begin
         parse_pattern_atom := mk_pat_ctor(sub_i, nil);
       exit
     end;
-    parse_pattern_atom := mk_pat_var(off, tok_id_len);
-    lex_next; exit end;
+    parse_pattern_atom := mk_pat_var(off, plen);
+    exit end;
   if tok = TK_LBRACKET then begin
     lex_next;
     if tok = TK_RBRACKET then begin
@@ -1473,10 +1500,11 @@ function try_match(p: PPat; v: PVal; env: PEnv): PEnv;
 { Attempts to match pattern p against value v, extending env.
   Sets match_success := true on success, false on fail.
   Returns extended env on success (or env unchanged if no bindings). }
-var e1: PEnv;
+var e1: PEnv; e1_i: integer;
 begin
   try_match := env;
   match_success := true;
+  e1_i := 0;
   if p = nil then begin match_success := false; exit end;
   if v = nil then begin match_success := false; exit end;
 
@@ -1496,6 +1524,19 @@ begin
   if p^.pk = PK_BOOL then begin
     if (v^.vk = VK_BOOL) and (v^.ival = p^.ival) then exit;
     match_success := false; exit
+  end;
+
+  if p^.pk = PK_STRING then begin
+    if v^.vk <> VK_STRING then begin match_success := false; exit end;
+    if v^.nlen <> p^.nlen then begin match_success := false; exit end;
+    e1_i := 0;
+    while e1_i < p^.nlen do begin
+      if string_pool[v^.noff + e1_i] <> string_pool[p^.noff + e1_i] then begin
+        match_success := false; exit
+      end;
+      e1_i := e1_i + 1
+    end;
+    exit
   end;
 
   if p^.pk = PK_NIL then begin
@@ -1813,9 +1854,17 @@ begin eval_expr := nil;
     if names_equal(e^.noff, e^.nlen, char_chr_noff, char_chr_nlen) then begin
       eval_expr := mk_val_closure(char_chr_noff, char_chr_nlen, nil, nil); exit end;
     a := ctor_lookup(e^.noff, e^.nlen);
+    if a < 0 then begin
+      { Qualified-ctor fallback: try the suffix after the last '.'.
+        Lets Module.Ctor resolve the same as Ctor when the name is
+        defined as a constructor (e.g. cross-module Ast.AProgram). }
+      b := e^.nlen - 1;
+      while (b >= 0) and (name_pool[e^.noff + b] <> '.') do b := b - 1;
+      if b >= 0 then a := ctor_lookup(e^.noff + b + 1, e^.nlen - b - 1)
+    end;
     if a >= 0 then begin
       if ctor_arity[a] > 0 then
-        eval_expr := mk_val_closure(e^.noff, e^.nlen, nil, nil)
+        eval_expr := mk_val_closure(ctor_names_off[a], ctor_names_len[a], nil, nil)
       else
         eval_expr := mk_val_ctor(a);
       exit

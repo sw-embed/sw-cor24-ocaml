@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/issue16/ast.ml tests/issue16/parser.ml"
+exit_code = 0
