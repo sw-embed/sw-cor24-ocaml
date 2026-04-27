@@ -28,6 +28,7 @@ Try: 42
 EOF
 
 cor24-run --load-binary "$BUILD_DIR/pvm.bin@0" \
-  --load-binary "$BUILD_DIR/ocaml.p24m@0x010000" \
-  --patch "0x${CODE_PTR}=0x010000" \
+  --load-binary "$BUILD_DIR/ocaml.p24m@0x040000" \
+  --patch "0x${CODE_PTR}=0x040000" \
+  --patch 0x1094=0x03F000 \
   --entry 0 --speed 0 -n -1 -t 3600 --terminal

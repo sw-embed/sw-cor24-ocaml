@@ -144,8 +144,9 @@ ML_INPUT="${ML_INPUT//\\/\\\\}"
 UART_INPUT="${ML_INPUT}"$'\x04'"${OCAML_STDIN:-}"
 
 "$COR24_RUN" --load-binary "$BUILD_DIR/pvm.bin@0" \
-  --load-binary "$BUILD_DIR/ocaml.p24m@0x010000" \
-  --patch "0x${CODE_PTR}=0x010000" \
+  --load-binary "$BUILD_DIR/ocaml.p24m@0x040000" \
+  --patch "0x${CODE_PTR}=0x040000" \
+  --patch 0x1094=0x03F000 \
   --entry 0 -u "${UART_INPUT}" --speed 0 -n "$MAX_INSTRS" 2>&1 | \
   awk '
     /^UART output:/ { in_out = 1; sub(/^UART output: /, ""); }

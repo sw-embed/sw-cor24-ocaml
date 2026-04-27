@@ -60,8 +60,8 @@ echo "  [3/5] Assembling -> .p24 (pa24r)..."
 "$PA24R" "$BUILD_DIR/ocaml_linked.spc" -o "$BUILD_DIR/ocaml.p24" 2>/dev/null
 echo "  [3/5] ok"
 
-echo "  [4/5] Relocating -> .p24m (p24-load --load-addr 0x010000)..."
-"$P24LOAD" --load-addr 0x010000 "$BUILD_DIR/ocaml.p24" -o "$BUILD_DIR/ocaml.p24m" 2>/dev/null
+echo "  [4/5] Relocating -> .p24m (p24-load --load-addr 0x040000)..."
+"$P24LOAD" --load-addr 0x040000 "$BUILD_DIR/ocaml.p24" -o "$BUILD_DIR/ocaml.p24m" 2>/dev/null
 echo "  [4/5] ok"
 
 echo "  [5/5] Assembling PVM (for cor24-run/embedded path)..."
@@ -78,6 +78,6 @@ echo "  [5/5] ok (code_ptr @ 0x$CODE_PTR)"
 echo ""
 echo "Build complete:"
 echo "  ocaml.p24  (base 0, for pv24t / interactive demos)"
-echo "  ocaml.p24m (relocated to 0x010000, for cor24-run / regression / embedded)"
+echo "  ocaml.p24m (relocated to 0x040000, for cor24-run / regression / embedded)"
 echo "  pvm.bin    (for cor24-run path)"
 echo "  Code ptr:  0x$CODE_PTR"
