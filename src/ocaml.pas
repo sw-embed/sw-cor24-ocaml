@@ -32,7 +32,7 @@ const
   OP_EQ=34; OP_NEQ=35; OP_LT=36; OP_GT=37;
   OP_LE=38; OP_GE=39; OP_AND=40; OP_OR=41; OP_NOT=19;
   OP_CONS=55; OP_PAIR=56; OP_CONCAT=57; OP_DEREF=58; OP_ASSIGN=59;
-  NAME_POOL_MAX=2048;
+  NAME_POOL_MAX=4096;
   CTOR_MAX=64;
   VK_INT=1; VK_BOOL=2; VK_CLOSURE=3; VK_UNIT=4;
   VK_NIL=5; VK_CONS=6; VK_PAIR=7;
@@ -72,7 +72,7 @@ var
   tok_id: array[0..63] of char; tok_id_len: integer;
   src: array[0..4095] of char; src_len: integer;
   pos: integer; ch: char;
-  name_pool: array[0..2047] of char; name_pool_len: integer;
+  name_pool: array[0..4095] of char; name_pool_len: integer;
   string_pool: array[0..4095] of char; string_pool_len: integer;
   tok_str_off: integer; tok_str_len: integer;
   parse_error: boolean; eval_error: boolean; exit_requested: boolean;

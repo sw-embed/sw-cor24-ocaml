@@ -1,0 +1,2 @@
+command = "bash -c \"OCAML_STDIN='*coord2 -> (x y)'$'\\003' ./scripts/run-ocaml.sh tests/eval_issue12_utf8_helper_lexer.ml\""
+exit_code = 0
