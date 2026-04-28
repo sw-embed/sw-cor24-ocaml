@@ -1,0 +1,12 @@
+number = 4
+slug = "define-roots"
+status = "pending"
+description = """
+# Step: define-roots
+
+Define and instrument the GC root set so a future mark ..."""
+role = "production"
+context_files = []
+created_at = "2026-04-27T21:28:17"
+task_type = "refactor"
+commits = []

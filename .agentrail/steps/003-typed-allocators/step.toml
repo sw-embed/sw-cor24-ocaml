@@ -1,0 +1,12 @@
+number = 3
+slug = "typed-allocators"
+status = "pending"
+description = """
+# Step: typed-allocators
+
+Introduce typed allocator helpers (`alloc_expr`, `a..."""
+role = "production"
+context_files = []
+created_at = "2026-04-27T21:28:17"
+task_type = "refactor"
+commits = []

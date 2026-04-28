@@ -1,0 +1,12 @@
+number = 2
+slug = "survey-allocation-sites"
+status = "pending"
+description = """
+# Step: survey-allocation-sites
+
+Catalog every OCaml-runtime heap allocation ..."""
+role = "production"
+context_files = []
+created_at = "2026-04-27T21:28:17"
+task_type = "research"
+commits = []

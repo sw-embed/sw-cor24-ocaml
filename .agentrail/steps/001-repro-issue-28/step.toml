@@ -1,0 +1,12 @@
+number = 1
+slug = "repro-issue-28"
+status = "pending"
+description = """
+# Step: repro-issue-28
+
+Reproduce GitHub issue #28 (two-pass memory-backed Tu..."""
+role = "production"
+context_files = []
+created_at = "2026-04-27T21:28:17"
+task_type = "research"
+commits = []
