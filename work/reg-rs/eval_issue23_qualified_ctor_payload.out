@@ -1,0 +1,12 @@
+> let __module = "Lexer"
+> type token = TIdent of int list | TInt of int | TEOF
+> let __module = "Parser_full"
+> type token = TIdent of string | TInt of int | TEOF
+> let one t = match t with Lexer.TIdent bs -> Parser_full.TIdent "x" | Lexer.TInt n -> Parser_full.TInt n | _ -> Parser_full.TEOF
+> let __module = "Main"
+> let _ = let r = Parser_full.one (Lexer.TIdent [97; 98; 99]) in (match r with Parser_full.TIdent s -> print_endline s | _ -> print_endline "fail")
+x
+> let _ = let r = Parser_full.one (Lexer.TInt 7) in (match r with Parser_full.TInt n -> print_int n | _ -> print_endline "fail")
+7
+> let _ = let r = Parser_full.one Lexer.TEOF in (match r with Parser_full.TEOF -> print_endline " eof" | _ -> print_endline "fail")
+ eof

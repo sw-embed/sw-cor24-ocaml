@@ -933,6 +933,20 @@ begin
         parse_pattern_atom := mk_pat_ctor(sub_i, nil);
       exit
     end;
+    { Deferred qualified-ctor pattern: name has '.' and a sub-pattern
+      follows, so the user clearly wants a payload constructor — but no
+      matching ctor is registered yet (e.g., the source module hasn't
+      been loaded in this REPL session). Build a PK_CTOR with sentinel
+      tag -1 carrying the qualified name in noff/nlen; try_match will
+      resolve at match time. }
+    if (first_upper) and is_pat_start then begin
+      sub := parse_pattern_atom;
+      if parse_error then exit;
+      p := mk_pat_ctor(-1, sub);
+      p^.noff := off; p^.nlen := plen;
+      parse_pattern_atom := p;
+      exit
+    end;
     parse_pattern_atom := mk_pat_var(off, plen);
     exit end;
   if tok = TK_LBRACKET then begin
@@ -1605,7 +1619,28 @@ begin
   end;
 
   if p^.pk = PK_CTOR then begin
-    if (v^.vk <> VK_CTOR) or (v^.ival <> p^.ival) then begin match_success := false; exit end;
+    if v^.vk <> VK_CTOR then begin match_success := false; exit end;
+    if p^.ival < 0 then begin
+      { Deferred qualified-ctor pattern (e.g., Lexer.TIdent bs parsed
+        before Lexer was loaded, or with same-basename collision):
+        resolve the ctor tag now using the qualified name in noff/nlen.
+        Try full name first, then suffix after the last '.'. }
+      e1_i := ctor_lookup(p^.noff, p^.nlen);
+      if e1_i < 0 then begin
+        e1_i := p^.nlen - 1;
+        while (e1_i >= 0) and (name_pool[p^.noff + e1_i] <> '.') do e1_i := e1_i - 1;
+        if e1_i >= 0 then e1_i := ctor_lookup(p^.noff + e1_i + 1, p^.nlen - e1_i - 1)
+        else e1_i := -1
+      end;
+      if e1_i < 0 then begin match_success := false; exit end;
+      if v^.ival <> e1_i then begin match_success := false; exit end;
+      if ctor_arity[e1_i] > 0 then begin
+        try_match := try_match(p^.sub1, v^.head, env);
+        exit
+      end;
+      exit
+    end;
+    if v^.ival <> p^.ival then begin match_success := false; exit end;
     if ctor_arity[p^.ival] > 0 then begin
       try_match := try_match(p^.sub1, v^.head, env);
       exit
