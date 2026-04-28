@@ -1,6 +1,6 @@
 number = 5
 slug = "define-roots"
-status = "pending"
+status = "completed"
 description = """
 # Step: define-roots
 
@@ -8,5 +8,6 @@ Define and instrument the GC root set so a future mark ..."""
 role = "production"
 context_files = []
 created_at = "2026-04-27T21:28:17"
+completed_at = "2026-04-27T22:10:39"
 task_type = "refactor"
-commits = []
+commits = ["b485ac97ed5490b3fe8b697a8a405dad1243e3c0"]
