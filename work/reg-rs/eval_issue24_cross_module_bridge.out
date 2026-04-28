@@ -1,0 +1,25 @@
+> let __module = "Ast"
+> type node = AAtom of string | AGroup of string * string list | AStmt of string * string list | AProgram of string list | AError of string
+> let __module = "Registry"
+> type syntax_entry = SyntaxEntry of string * string * string list * string list
+> type syntax_match = NoSyntaxMatch | SyntaxMatch of string * string list * string list * string list * int
+> let syntax_entries = ref []
+> let syntax_next_order = ref 0
+> let add_syntax mode template expansion = let order = !syntax_next_order in let order_s = string_of_int order in let _ = syntax_next_order := order + 1 in syntax_entries := SyntaxEntry (order_s, mode, template, expansion) :: !syntax_entries
+> let is_slot s = s = "slot"
+> let has_capture cap = match cap with [] -> false | _ -> true
+> let rec rev_items xs acc = match xs with [] -> acc | h :: t -> rev_items t (h :: acc)
+> let rec append_items xs ys = match xs with [] -> ys | h :: t -> h :: append_items t ys
+> let rec template_len xs = match xs with [] -> 0 | h :: t -> 1 + template_len t
+> let __module = "Parser"
+> type token = TIdent of string | TInt of int | TPct of int | TMinus | TLArrow | TRArrow | TLParen | TRParen | TLBrace | TRBrace | TComma | TUnderscore | THash of string | TLiteral of string | TUnknown of int | TEOF | TMint
+> let token_name t = match t with TIdent s -> "ident:" ^ s | TInt n -> "int" | TPct n -> "pct" | TMinus -> "minus" | TLArrow -> "larrow" | TRArrow -> "rarrow" | TLParen -> "lparen" | TRParen -> "rparen" | TLBrace -> "lbrace" | TRBrace -> "rbrace" | TComma -> "comma" | TUnderscore -> "slot" | THash s -> "hash" | TLiteral s -> "lit" | TUnknown n -> "unknown" | TEOF -> "eof" | TMint -> "mint"
+> let __module = "Lexer"
+> type token = TIdent of int list | TInt of int | TPct of int | TMinus | TLArrow | TRArrow | TLParen | TRParen | TLBrace | TRBrace | TComma | TUnderscore | THash of int list | TLiteral of int list | TUnknown of int | TEOF | TMint
+> let __module = "Probe"
+> let one = match Lexer.TLArrow with Lexer.TLArrow -> Parser.TLArrow | _ -> Parser.TEOF
+> let _ = print_endline (Parser.token_name one)
+larrow
+> let two = match Lexer.TIdent [102;111;111] with Lexer.TIdent bs -> Parser.TIdent "x" | _ -> Parser.TEOF
+> let _ = print_endline (Parser.token_name two)
+ident:x
