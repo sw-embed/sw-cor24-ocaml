@@ -1,0 +1,9 @@
+let _ = poke 524400 72
+let _ = poke 524401 105
+let _ = poke 524402 0
+let rec read_loop addr = let b = peek addr in if b = 0 then () else let _ = putc b in read_loop (addr + 1)
+let _ = read_loop 524400
+let _ = putc 10
+let _ = print_int (peek 524400)
+let _ = putc 32
+let _ = print_int (peek 524401)
