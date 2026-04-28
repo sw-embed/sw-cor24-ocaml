@@ -119,6 +119,7 @@ var
   let_tmp_noff: integer; let_tmp_nlen: integer;
   print_endline_noff: integer; print_endline_nlen: integer;
   string_length_noff: integer; string_length_nlen: integer;
+  string_make_noff: integer; string_make_nlen: integer;
   char_code_noff: integer; char_code_nlen: integer;
   char_chr_noff: integer; char_chr_nlen: integer;
   module_directive_noff: integer; module_directive_nlen: integer;
@@ -1404,7 +1405,20 @@ begin
   name_pool[name_pool_len] := 'g'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
   name_pool[name_pool_len] := 'h'; name_pool_len := name_pool_len+1;
-  string_length_nlen := 13
+  string_length_nlen := 13;
+  string_make_noff := name_pool_len;
+  name_pool[name_pool_len] := 'S'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 't'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'r'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'i'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'n'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'g'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := '.'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'm'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'a'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'k'; name_pool_len := name_pool_len+1;
+  name_pool[name_pool_len] := 'e'; name_pool_len := name_pool_len+1;
+  string_make_nlen := 11
 end;
 procedure intern_module_directive;
 begin
@@ -1872,6 +1886,8 @@ begin eval_expr := nil;
       eval_expr := mk_val_closure(char_code_noff, char_code_nlen, nil, nil); exit end;
     if names_equal(e^.noff, e^.nlen, char_chr_noff, char_chr_nlen) then begin
       eval_expr := mk_val_closure(char_chr_noff, char_chr_nlen, nil, nil); exit end;
+    if names_equal(e^.noff, e^.nlen, string_make_noff, string_make_nlen) then begin
+      eval_expr := mk_val_closure(string_make_noff, string_make_nlen, nil, nil); exit end;
     a := ctor_lookup(e^.noff, e^.nlen);
     if a < 0 then begin
       { Qualified-ctor fallback: try the suffix after the last '.'.
@@ -2138,6 +2154,26 @@ begin eval_expr := nil;
         if names_equal(fv^.noff, fv^.nlen, int_of_string_noff, int_of_string_nlen) then begin
           if av^.vk <> VK_STRING then begin eval_error := true; exit end;
           eval_expr := int_of_string_impl(av); exit end;
+        if names_equal(fv^.noff, fv^.nlen, string_make_noff, string_make_nlen) then begin
+          { String.make n c — n copies of byte c (chars are ints in this
+            subset). Two-stage curry: first call carries n, second
+            constructs the string in string_pool. }
+          if av^.vk <> VK_INT then begin eval_error := true; exit end;
+          if fv^.ival = 0 then begin
+            if av^.ival < 0 then begin eval_error := true; exit end;
+            eval_expr := mk_partial(string_make_noff, string_make_nlen, 1, av, nil); exit
+          end;
+          if (av^.ival < 0) or (av^.ival > 255) then begin eval_error := true; exit end;
+          rec_head := fv^.head;
+          a := rec_head^.ival; b := av^.ival;
+          if string_pool_len + a > 4095 then begin eval_error := true; exit end;
+          res := string_pool_len;
+          while string_pool_len - res < a do begin
+            string_pool[string_pool_len] := chr(b);
+            string_pool_len := string_pool_len + 1
+          end;
+          eval_expr := mk_val_string(res, a); exit
+        end;
         if names_equal(fv^.noff, fv^.nlen, list_map_noff, list_map_nlen) then begin
           if fv^.ival = 0 then begin
             eval_expr := mk_partial(list_map_noff, list_map_nlen, 1, av, nil); exit end;

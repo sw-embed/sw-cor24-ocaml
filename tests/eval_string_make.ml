@@ -1,0 +1,5 @@
+let _ = print_endline (String.make 1 (Char.chr 97))
+let _ = print_endline (String.make 5 (Char.chr 65))
+let _ = print_endline (("hello-" ^ String.make 1 119) ^ "orld")
+let rec bytes_to_string bs = match bs with [] -> "" | h :: t -> (String.make 1 h) ^ (bytes_to_string t)
+let _ = print_endline (bytes_to_string [72; 101; 108; 108; 111])
