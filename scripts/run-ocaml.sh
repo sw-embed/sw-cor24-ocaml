@@ -17,7 +17,7 @@ if [ "$#" -lt 1 ]; then
   exit 1
 fi
 
-MAX_INSTRS="500000000"
+MAX_INSTRS="3000000000"
 ARGS=("$@")
 LAST_INDEX=$((${#ARGS[@]} - 1))
 if [[ "${ARGS[$LAST_INDEX]}" != *.ml ]]; then
