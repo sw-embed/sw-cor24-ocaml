@@ -1,0 +1,2 @@
+command = "./scripts/run-pascal.sh tests/test_dispose.pas"
+exit_code = 0
