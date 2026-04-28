@@ -47,14 +47,16 @@ type
     noff: integer; nlen: integer;
     left: PExpr; right: PExpr; extra: PExpr;
     pat: PPat;
-    next_alloc: PExpr
+    next_alloc: PExpr;
+    mark_bit: integer
   end;
   Pat = record
     pk: integer;
     ival: integer;
     noff: integer; nlen: integer;
     sub1: PPat; sub2: PPat;
-    next_alloc: PPat
+    next_alloc: PPat;
+    mark_bit: integer
   end;
   PEnv = ^EnvEntry;
   PVal = ^Val;
@@ -63,12 +65,14 @@ type
     noff: integer; nlen: integer;
     body: PExpr; cenv: PEnv;
     head: PVal; tail: PVal;
-    next_alloc: PVal
+    next_alloc: PVal;
+    mark_bit: integer
   end;
   EnvEntry = record
     noff: integer; nlen: integer;
     val: PVal; next: PEnv;
-    next_alloc: PEnv
+    next_alloc: PEnv;
+    mark_bit: integer
   end;
 
 var
