@@ -1,6 +1,6 @@
 number = 3
 slug = "verify-pascal-dispose"
-status = "pending"
+status = "completed"
 description = """
 # Step: verify-pascal-dispose
 
@@ -8,5 +8,6 @@ Verify that Pascal `dispose(p)` actually frees..."""
 role = "production"
 context_files = []
 created_at = "2026-04-27T21:40:49"
+completed_at = "2026-04-27T21:49:05"
 task_type = "research"
-commits = []
+commits = ["097178c5eeaa727f416e9673f4b02cd3760fa1ad"]

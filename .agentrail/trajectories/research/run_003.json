@@ -1,0 +1,11 @@
+{
+  "task_type": "research",
+  "state": {
+    "number": 3,
+    "step": "verify-pascal-dispose"
+  },
+  "action": "Wrote tests/test_dispose.pas (10000 alloc/dispose cycles, 2x heap capacity), wired into reg-rs as pascal_dispose_stress, ran via standard build pipeline + just test (100/100)",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-27T21:49:05"
+}
