@@ -57,9 +57,9 @@ source_for_repl() {
     function emit_logical(line) {
       if (line ~ /^[[:space:]]*$/) return
       # Continuation lines: leading whitespace (indented body of a multi-line
-      # let/match/if) or starting with `|` (match arm). Both fold into the
-      # current logical line so the REPL sees one statement, not five.
-      if (line ~ /^[[:space:]]+/) {
+      # let/match/if), `|` arm, or `and` (mutual-rec binding). All fold into
+      # the current logical line so the REPL sees one statement, not five.
+      if (line ~ /^[[:space:]]+/ || line ~ /^and[[:space:]]/) {
         if (have) {
           sub(/^[[:space:]]*/, "", line)
           current = current " " line

@@ -18,7 +18,7 @@ const
   TK_MATCH=21; TK_WITH=22; TK_FUNCTION=23; TK_PIPE=58;
   TK_STRING=59; TK_CARET=60; TK_BANG=61; TK_ASSIGN=62;
   TK_LBRACE=63; TK_RBRACE=64; TK_COLON=65;
-  TK_TYPE=24; TK_WHEN=25;
+  TK_TYPE=24; TK_WHEN=25; TK_AND=26;
   TK_ERROR=99;
   SRC_MAX=4095; ID_MAX=63;
   EK_INT=1; EK_BOOL=2; EK_VAR=3; EK_BINOP=4; EK_UNARY=5;
@@ -172,6 +172,7 @@ begin classify_ident := TK_IDENT;
     else if (tok_id[0]='f') and (tok_id[1]='u') and (tok_id[2]='n') then classify_ident := TK_FUN
     else if (tok_id[0]='n') and (tok_id[1]='o') and (tok_id[2]='t') then classify_ident := TK_NOT
     else if (tok_id[0]='m') and (tok_id[1]='o') and (tok_id[2]='d') then classify_ident := TK_MOD
+    else if (tok_id[0]='a') and (tok_id[1]='n') and (tok_id[2]='d') then classify_ident := TK_AND
   end else if tok_id_len = 4 then begin
     if (tok_id[0]='t') and (tok_id[1]='h') and (tok_id[2]='e') and (tok_id[3]='n') then classify_ident := TK_THEN
     else if (tok_id[0]='e') and (tok_id[1]='l') and (tok_id[2]='s') and (tok_id[3]='e') then classify_ident := TK_ELSE
@@ -705,7 +706,7 @@ begin
 end;
 
 function parse_expr: PExpr;
-var e, val_e, body_e, match_e: PExpr; is_rec, allow_decl: boolean; my_noff, my_nlen: integer;
+var e, val_e, body_e, match_e, chain_cur, chain_new: PExpr; is_rec, allow_decl: boolean; my_noff, my_nlen: integer;
     let_pat: PPat;
 begin parse_expr := nil;
   if tok=TK_TYPE then begin
@@ -733,25 +734,43 @@ begin parse_expr := nil;
       { let rec: require plain identifier, no patterns }
       if (tok=TK_IDENT) or ((tok >= TK_LET) and (tok <= TK_MOD)) then begin my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
       else begin parse_error := true; exit end;
-      { Function-form let rec: 'let rec f P1 P2 = body' sugar. }
+      { Parse the first binding's value (function-form sugar or '= expr'). }
       if is_pat_start then begin
         val_e := parse_let_fun_params;
-        if parse_error then exit;
-        if tok=TK_IN then begin lex_next; body_e := parse_seq end
-        else if allow_decl and (tok=TK_EOF) then body_e := nil
-        else begin parse_error := true; exit end;
-        e := mk_let_node(val_e, body_e);
-        e^.noff := my_noff; e^.nlen := my_nlen;
-        e^.ival := 1; parse_expr := e; exit
+        if parse_error then exit
+      end else begin
+        if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
+        val_e := parse_expr;
+        if parse_error then exit
       end;
-      if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
-      val_e := parse_expr;
-      if tok=TK_IN then begin lex_next; body_e := parse_seq end
-      else if allow_decl and (tok=TK_EOF) then body_e := nil
+      e := mk_let_node(val_e, nil);
+      e^.noff := my_noff; e^.nlen := my_nlen; e^.ival := 1;
+      { 'and NAME ... = body' chain — store each extra binding as another
+        EK_LET node linked through the head's extra field. Eval walks the
+        chain to install all placeholders before evaluating any body so
+        each can reference the others. }
+      chain_cur := e;
+      while tok = TK_AND do begin
+        lex_next;
+        if (tok=TK_IDENT) or ((tok >= TK_LET) and (tok <= TK_MOD)) then begin my_noff := pool_intern; my_nlen := tok_id_len; lex_next end
+        else begin parse_error := true; exit end;
+        if is_pat_start then begin
+          val_e := parse_let_fun_params;
+          if parse_error then exit
+        end else begin
+          if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
+          val_e := parse_expr;
+          if parse_error then exit
+        end;
+        chain_new := mk_let_node(val_e, nil);
+        chain_new^.noff := my_noff; chain_new^.nlen := my_nlen; chain_new^.ival := 1;
+        chain_cur^.extra := chain_new;
+        chain_cur := chain_new
+      end;
+      if tok=TK_IN then begin lex_next; body_e := parse_seq; e^.right := body_e end
+      else if allow_decl and (tok=TK_EOF) then e^.right := nil
       else begin parse_error := true; exit end;
-      e := mk_let_node(val_e, body_e);
-      e^.noff := my_noff; e^.nlen := my_nlen;
-      e^.ival := 1; parse_expr := e; exit
+      parse_expr := e; exit
     end;
     { Non-rec: parse a pattern. If pattern is PK_VAR use fast path;
       else desugar 'let PAT = e in body' to
@@ -1952,9 +1971,27 @@ begin eval_expr := nil;
     if e^.ival = 1 then begin
       lv := mk_val_closure(0, 0, nil, nil);
       ne := env_extend(env, e^.noff, e^.nlen, lv);
+      { let rec ... and ... — walk extra chain to install all placeholder
+        bindings before evaluating any body, so each body can resolve the
+        others' names. }
+      arm := e^.extra;
+      while arm <> nil do begin
+        cur_field := mk_val_closure(0, 0, nil, nil);
+        ne := env_extend(ne, arm^.noff, arm^.nlen, cur_field);
+        arm := arm^.extra
+      end;
       rv := eval_expr(l, ne); if eval_error then exit;
       lv^.vk := rv^.vk; lv^.ival := rv^.ival; lv^.noff := rv^.noff; lv^.nlen := rv^.nlen;
-      lv^.body := rv^.body; lv^.cenv := ne
+      lv^.body := rv^.body; lv^.cenv := ne;
+      arm := e^.extra;
+      while arm <> nil do begin
+        cur_field := env_lookup(ne, arm^.noff, arm^.nlen);
+        if eval_error then exit;
+        rv := eval_expr(arm^.left, ne); if eval_error then exit;
+        cur_field^.vk := rv^.vk; cur_field^.ival := rv^.ival; cur_field^.noff := rv^.noff; cur_field^.nlen := rv^.nlen;
+        cur_field^.body := rv^.body; cur_field^.cenv := ne;
+        arm := arm^.extra
+      end
     end else begin
       lv := eval_expr(l, env); if eval_error then exit;
       ne := env_extend(env, e^.noff, e^.nlen, lv) end;
@@ -2168,10 +2205,35 @@ begin
       ne := env_extend(ne, e^.noff, e^.nlen, lv)
     end else
       ne := env_extend(env, e^.noff, e^.nlen, lv);
+    { let rec ... and ... at top-level — install every placeholder before
+      any body runs, so cross-references resolve. Each binding gets both
+      qualified and unqualified names when in a module. }
+    dir_expr := e^.extra;
+    while dir_expr <> nil do begin
+      rv := mk_val_closure(0, 0, nil, nil);
+      if current_module_len > 0 then begin
+        qoff := qualified_name(dir_expr^.noff, dir_expr^.nlen);
+        qlen := current_module_len + 1 + dir_expr^.nlen;
+        ne := env_extend(ne, qoff, qlen, rv);
+        ne := env_extend(ne, dir_expr^.noff, dir_expr^.nlen, rv)
+      end else
+        ne := env_extend(ne, dir_expr^.noff, dir_expr^.nlen, rv);
+      dir_expr := dir_expr^.extra
+    end;
     rv := eval_expr(e^.left, ne);
     if eval_error then exit;
     lv^.vk := rv^.vk; lv^.ival := rv^.ival; lv^.noff := rv^.noff; lv^.nlen := rv^.nlen;
     lv^.body := rv^.body; lv^.cenv := ne;
+    dir_expr := e^.extra;
+    while dir_expr <> nil do begin
+      lv := env_lookup(ne, dir_expr^.noff, dir_expr^.nlen);
+      if eval_error then exit;
+      rv := eval_expr(dir_expr^.left, ne);
+      if eval_error then exit;
+      lv^.vk := rv^.vk; lv^.ival := rv^.ival; lv^.noff := rv^.noff; lv^.nlen := rv^.nlen;
+      lv^.body := rv^.body; lv^.cenv := ne;
+      dir_expr := dir_expr^.extra
+    end;
     eval_toplevel_decl := ne;
     exit
   end;

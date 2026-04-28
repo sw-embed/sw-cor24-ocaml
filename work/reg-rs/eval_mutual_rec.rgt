@@ -1,0 +1,2 @@
+command = "./scripts/run-ocaml.sh tests/eval_mutual_rec.ml"
+exit_code = 0
