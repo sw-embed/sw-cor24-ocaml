@@ -1,0 +1,11 @@
+{
+  "task_type": "research",
+  "state": {
+    "number": 2,
+    "step": "survey-allocation-sites"
+  },
+  "action": "Cataloged 44 new() sites in src/ocaml.pas across 4 record types (Expr/Pat/Val/EnvEntry), produced docs/heap-survey.md with per-kind pointer-field map for the future marker",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-27T21:40:16"
+}

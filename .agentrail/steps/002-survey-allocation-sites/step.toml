@@ -1,6 +1,6 @@
 number = 2
 slug = "survey-allocation-sites"
-status = "pending"
+status = "completed"
 description = """
 # Step: survey-allocation-sites
 
@@ -8,5 +8,6 @@ Catalog every OCaml-runtime heap allocation ..."""
 role = "production"
 context_files = []
 created_at = "2026-04-27T21:28:17"
+completed_at = "2026-04-27T21:40:16"
 task_type = "research"
-commits = []
+commits = ["bd4f7b896bc59c7a32061b07d5eb9f0a38a1a8df"]
