@@ -32,7 +32,7 @@ const
   OP_EQ=34; OP_NEQ=35; OP_LT=36; OP_GT=37;
   OP_LE=38; OP_GE=39; OP_AND=40; OP_OR=41; OP_NOT=19;
   OP_CONS=55; OP_PAIR=56; OP_CONCAT=57; OP_DEREF=58; OP_ASSIGN=59;
-  NAME_POOL_MAX=4096;
+  NAME_POOL_MAX=16384;
   CTOR_MAX=64;
   VK_INT=1; VK_BOOL=2; VK_CLOSURE=3; VK_UNIT=4;
   VK_NIL=5; VK_CONS=6; VK_PAIR=7;
@@ -72,7 +72,7 @@ var
   tok_id: array[0..63] of char; tok_id_len: integer;
   src: array[0..4095] of char; src_len: integer;
   pos: integer; ch: char;
-  name_pool: array[0..4095] of char; name_pool_len: integer;
+  name_pool: array[0..16383] of char; name_pool_len: integer;
   string_pool: array[0..16383] of char; string_pool_len: integer;
   tok_str_off: integer; tok_str_len: integer;
   parse_error: boolean; eval_error: boolean; exit_requested: boolean;
@@ -284,20 +284,20 @@ begin skip_ws_and_comments;
         pos := pos + 1;
         if pos >= src_len then begin tok := TK_ERROR; exit end;
         if src[pos] = 'n' then begin
-          if string_pool_len < 16383 then begin string_pool[string_pool_len] := chr(10); string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
+          if string_pool_len < 32767 then begin string_pool[string_pool_len] := chr(10); string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
         end else if src[pos] = 't' then begin
-          if string_pool_len < 16383 then begin string_pool[string_pool_len] := chr(9); string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
+          if string_pool_len < 32767 then begin string_pool[string_pool_len] := chr(9); string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
         end else if src[pos] = '"' then begin
-          if string_pool_len < 16383 then begin string_pool[string_pool_len] := '"'; string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
+          if string_pool_len < 32767 then begin string_pool[string_pool_len] := '"'; string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
         end else if src[pos] = '\' then begin
-          if string_pool_len < 16383 then begin string_pool[string_pool_len] := '\'; string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
+          if string_pool_len < 32767 then begin string_pool[string_pool_len] := '\'; string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
         end else begin
           { unknown escape: pass through the char as-is }
-          if string_pool_len < 16383 then begin string_pool[string_pool_len] := src[pos]; string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
+          if string_pool_len < 32767 then begin string_pool[string_pool_len] := src[pos]; string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end
         end;
         pos := pos + 1
       end else begin
-        if string_pool_len < 16383 then begin string_pool[string_pool_len] := src[pos]; string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end;
+        if string_pool_len < 32767 then begin string_pool[string_pool_len] := src[pos]; string_pool_len := string_pool_len+1; tok_str_len := tok_str_len+1 end;
         pos := pos + 1
       end
     end;
@@ -1776,13 +1776,13 @@ begin
   end;
   off := string_pool_len; len := 0;
   if is_neg then begin
-    if string_pool_len < 16383 then begin
+    if string_pool_len < 32767 then begin
       string_pool[string_pool_len] := '-'; string_pool_len := string_pool_len + 1; len := 1
     end
   end;
   i := tmp_len - 1;
   while i >= 0 do begin
-    if string_pool_len < 16383 then begin
+    if string_pool_len < 32767 then begin
       string_pool[string_pool_len] := soi_tmp[i]; string_pool_len := string_pool_len + 1; len := len + 1
     end;
     i := i - 1
@@ -1993,12 +1993,12 @@ begin eval_expr := nil;
       a := string_pool_len;
       res := 0;
       while res < lv^.nlen do begin
-        if string_pool_len < 16383 then begin string_pool[string_pool_len] := string_pool[lv^.noff + res]; string_pool_len := string_pool_len + 1 end;
+        if string_pool_len < 32767 then begin string_pool[string_pool_len] := string_pool[lv^.noff + res]; string_pool_len := string_pool_len + 1 end;
         res := res + 1
       end;
       res := 0;
       while res < rv^.nlen do begin
-        if string_pool_len < 16383 then begin string_pool[string_pool_len] := string_pool[rv^.noff + res]; string_pool_len := string_pool_len + 1 end;
+        if string_pool_len < 32767 then begin string_pool[string_pool_len] := string_pool[rv^.noff + res]; string_pool_len := string_pool_len + 1 end;
         res := res + 1
       end;
       eval_expr := mk_val_string(a, lv^.nlen + rv^.nlen);
@@ -2147,7 +2147,7 @@ begin eval_expr := nil;
               end
             end else begin
               write(read_line_ch);
-              if string_pool_len < 16383 then begin
+              if string_pool_len < 32767 then begin
                 string_pool[string_pool_len] := read_line_ch;
                 string_pool_len := string_pool_len + 1
               end

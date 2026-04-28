@@ -1,0 +1,18 @@
+> let s1 = String.make 1000 65
+> let s2 = String.make 1000 66
+> let s3 = String.make 1000 67
+> let s4 = String.make 1000 68
+> let s5 = String.make 1000 69
+> let s6 = String.make 1000 70
+> let s7 = String.make 1000 71
+> let s8 = String.make 1000 72
+> let s9 = String.make 1000 73
+> let _ = print_int (String.length s1)
+1000
+> let _ = putc 32
+ 
+> let _ = print_int (String.length s9)
+1000
+> let _ = putc 32
+ 
+> let _ = print_int (String.length s5)1000
