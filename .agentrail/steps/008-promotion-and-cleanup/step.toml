@@ -1,10 +1,14 @@
-number = 6
-slug = "stress-test-and-issue-28"
+number = 8
+slug = "promotion-and-cleanup"
 status = "pending"
 description = """
-# Step: stress-test-and-issue-28
+# Step: promotion-and-cleanup
 
-Add an internal stress test, run the #28 re..."""
+Final validation gate.
+
+## What to do
+
+1. Run ..."""
 role = "validation"
 context_files = []
 created_at = "2026-04-27T21:28:17"

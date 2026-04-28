@@ -1,0 +1,12 @@
+number = 3
+slug = "verify-pascal-dispose"
+status = "pending"
+description = """
+# Step: verify-pascal-dispose
+
+Verify that Pascal `dispose(p)` actually frees..."""
+role = "production"
+context_files = []
+created_at = "2026-04-27T21:40:49"
+task_type = "research"
+commits = []
