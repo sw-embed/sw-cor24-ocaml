@@ -217,11 +217,24 @@ begin src_len := 0; pos := 0; tok := TK_EOF; tok_int := 0; tok_id_len := 0;
   end
 end;
 procedure lex_next;
-var c: char;
+var c, d: char;
 begin skip_ws_and_comments;
   if pos >= src_len then begin tok := TK_EOF; exit end;
   c := src[pos];
   if is_digit(c) then begin tok := TK_INT; tok_int := 0;
+    { Hex literal: 0x... — accept after the leading 0. }
+    if (c = '0') and (pos+1 < src_len) and (src[pos+1] = 'x') then begin
+      pos := pos + 2;
+      while pos < src_len do begin
+        d := src[pos];
+        if (d >= '0') and (d <= '9') then tok_int := tok_int*16 + (ord(d) - ord('0'))
+        else if (d >= 'a') and (d <= 'f') then tok_int := tok_int*16 + (ord(d) - ord('a') + 10)
+        else if (d >= 'A') and (d <= 'F') then tok_int := tok_int*16 + (ord(d) - ord('A') + 10)
+        else exit;
+        pos := pos + 1
+      end;
+      exit
+    end;
     while (pos < src_len) and is_digit(src[pos]) do begin tok_int := tok_int*10 + (ord(src[pos])-ord('0')); pos := pos+1 end; exit end;
   if is_alpha(c) then begin tok_id_len := 0;
     while (pos < src_len) and is_alnum(src[pos]) do begin

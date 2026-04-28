@@ -1,0 +1,9 @@
+let _ = print_int 0xff
+let _ = putc 32
+let _ = print_int 0x100
+let _ = putc 32
+let _ = print_int 0x080000
+let _ = putc 32
+let _ = print_int 0xDEAD
+let _ = putc 32
+let _ = print_int 0

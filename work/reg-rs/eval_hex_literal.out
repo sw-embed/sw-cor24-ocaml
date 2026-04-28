@@ -1,0 +1,17 @@
+> let _ = print_int 0xff
+255
+> let _ = putc 32
+ 
+> let _ = print_int 0x100
+256
+> let _ = putc 32
+ 
+> let _ = print_int 0x080000
+524288
+> let _ = putc 32
+ 
+> let _ = print_int 0xDEAD
+57005
+> let _ = putc 32
+ 
+> let _ = print_int 00
