@@ -46,13 +46,15 @@ type
     kind: integer; ival: integer; op: integer;
     noff: integer; nlen: integer;
     left: PExpr; right: PExpr; extra: PExpr;
-    pat: PPat
+    pat: PPat;
+    next_alloc: PExpr
   end;
   Pat = record
     pk: integer;
     ival: integer;
     noff: integer; nlen: integer;
-    sub1: PPat; sub2: PPat
+    sub1: PPat; sub2: PPat;
+    next_alloc: PPat
   end;
   PEnv = ^EnvEntry;
   PVal = ^Val;
@@ -60,11 +62,13 @@ type
     vk: integer; ival: integer;
     noff: integer; nlen: integer;
     body: PExpr; cenv: PEnv;
-    head: PVal; tail: PVal
+    head: PVal; tail: PVal;
+    next_alloc: PVal
   end;
   EnvEntry = record
     noff: integer; nlen: integer;
-    val: PVal; next: PEnv
+    val: PVal; next: PEnv;
+    next_alloc: PEnv
   end;
 
 var
@@ -131,6 +135,8 @@ var
   ctor_arity: array[0..63] of integer;
   ctor_count: integer;
   ast: PExpr; result: PVal; top_env: PEnv;
+  expr_alloc_head: PExpr; pat_alloc_head: PPat;
+  val_alloc_head: PVal; env_alloc_head: PEnv;
 
 function pool_intern: integer;
 var start, j: integer;
@@ -333,60 +339,60 @@ begin skip_ws_and_comments;
 { === AST constructors === }
 function mk_int(v: integer): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_INT; n^.ival := v; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_INT; n^.ival := v; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_int := n end;
 function mk_nil_expr: PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_NIL; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_NIL; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_nil_expr := n end;
 function mk_string_expr(off, len: integer): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_STRING; n^.ival := 0; n^.op := 0; n^.noff := off; n^.nlen := len;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_STRING; n^.ival := 0; n^.op := 0; n^.noff := off; n^.nlen := len;
   n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_string_expr := n end;
 function mk_bool(v: integer): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_BOOL; n^.ival := v; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_BOOL; n^.ival := v; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_bool := n end;
 function mk_var_node: PExpr;
 var n: PExpr; off: integer;
-begin off := pool_intern; new(n); n^.kind := EK_VAR; n^.ival := 0; n^.op := 0;
+begin off := pool_intern; new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_VAR; n^.ival := 0; n^.op := 0;
   n^.noff := off; n^.nlen := tok_id_len; n^.left := nil; n^.right := nil; n^.extra := nil;
   n^.pat := nil; mk_var_node := n end;
 function mk_binop(o: integer; l, r: PExpr): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_BINOP; n^.ival := 0; n^.op := o; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_BINOP; n^.ival := 0; n^.op := o; n^.noff := 0; n^.nlen := 0;
   n^.left := l; n^.right := r; n^.extra := nil; n^.pat := nil; mk_binop := n end;
 function mk_unary(o: integer; operand: PExpr): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_UNARY; n^.ival := 0; n^.op := o; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_UNARY; n^.ival := 0; n^.op := o; n^.noff := 0; n^.nlen := 0;
   n^.left := operand; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_unary := n end;
 function mk_if(cond, then_br, else_br: PExpr): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_IF; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_IF; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := cond; n^.right := then_br; n^.extra := else_br; n^.pat := nil; mk_if := n end;
 function mk_let_node(val_e, body_e: PExpr): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_LET; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_LET; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := val_e; n^.right := body_e; n^.extra := nil; n^.pat := nil; mk_let_node := n end;
 function mk_fun_node(body_e: PExpr): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_FUN; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_FUN; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := body_e; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_fun_node := n end;
 function mk_app(fn, arg: PExpr): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_APP; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_APP; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := fn; n^.right := arg; n^.extra := nil; n^.pat := nil; mk_app := n end;
 function mk_match(scrutinee, first_arm: PExpr): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_MATCH; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_MATCH; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := scrutinee; n^.right := first_arm; n^.extra := nil; n^.pat := nil; mk_match := n end;
 function mk_arm(p: PPat; body: PExpr): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_MATCH_ARM; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_MATCH_ARM; n^.ival := 0; n^.op := 0; n^.noff := 0; n^.nlen := 0;
   n^.left := body; n^.right := nil; n^.extra := nil; n^.pat := p; mk_arm := n end;
 function mk_var_ref(off, len: integer): PExpr;
 var n: PExpr;
-begin new(n); n^.kind := EK_VAR; n^.ival := 0; n^.op := 0; n^.noff := off; n^.nlen := len;
+begin new(n); n^.next_alloc := expr_alloc_head; expr_alloc_head := n; n^.kind := EK_VAR; n^.ival := 0; n^.op := 0; n^.noff := off; n^.nlen := len;
   n^.left := nil; n^.right := nil; n^.extra := nil; n^.pat := nil; mk_var_ref := n end;
 
 function qualified_name(off, len: integer): integer;
@@ -419,34 +425,34 @@ end;
 
 function mk_pat_wildcard: PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_WILDCARD; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_wildcard := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_WILDCARD; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_wildcard := p end;
 function mk_pat_int(v: integer): PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_INT; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_int := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_INT; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_int := p end;
 function mk_pat_bool(v: integer): PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_BOOL; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_bool := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_BOOL; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_bool := p end;
 function mk_pat_var(off, len: integer): PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_VAR; p^.ival := 0; p^.noff := off; p^.nlen := len; p^.sub1 := nil; p^.sub2 := nil; mk_pat_var := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_VAR; p^.ival := 0; p^.noff := off; p^.nlen := len; p^.sub1 := nil; p^.sub2 := nil; mk_pat_var := p end;
 function mk_pat_nil: PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_NIL; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_nil := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_NIL; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_nil := p end;
 function mk_pat_cons(head_p, tail_p: PPat): PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_CONS; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := head_p; p^.sub2 := tail_p; mk_pat_cons := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_CONS; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := head_p; p^.sub2 := tail_p; mk_pat_cons := p end;
 function mk_pat_pair(a, b: PPat): PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_PAIR; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := a; p^.sub2 := b; mk_pat_pair := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_PAIR; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := a; p^.sub2 := b; mk_pat_pair := p end;
 function mk_pat_none: PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_NONE; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_none := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_NONE; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := nil; p^.sub2 := nil; mk_pat_none := p end;
 function mk_pat_some(sub: PPat): PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := sub; p^.sub2 := nil; mk_pat_some := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.sub1 := sub; p^.sub2 := nil; mk_pat_some := p end;
 function mk_pat_ctor(tag: integer; sub: PPat): PPat;
 var p: PPat;
-begin new(p); p^.pk := PK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.sub1 := sub; p^.sub2 := nil; mk_pat_ctor := p end;
+begin new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.sub1 := sub; p^.sub2 := nil; mk_pat_ctor := p end;
 
 function ctor_lookup(noff, nlen: integer): integer;
 var i, j: integer; eq: boolean;
@@ -549,7 +555,7 @@ begin parse_atom := nil;
         end
       end else begin
         field_off := pool_intern; field_len := tok_id_len;
-        new(f); f^.kind := EK_FIELD; f^.ival := 0; f^.op := 0;
+        new(f); f^.next_alloc := expr_alloc_head; expr_alloc_head := f; f^.kind := EK_FIELD; f^.ival := 0; f^.op := 0;
         f^.noff := field_off; f^.nlen := field_len;
         f^.left := e; f^.right := nil; f^.extra := nil; f^.pat := nil;
         e := f
@@ -568,7 +574,7 @@ begin parse_atom := nil;
       lex_next;
       if tok=TK_EQ then lex_next else begin parse_error := true; exit end;
       val_e := parse_expr;
-      new(f); f^.kind := EK_RECORD; f^.ival := 0; f^.op := 0;
+      new(f); f^.next_alloc := expr_alloc_head; expr_alloc_head := f; f^.kind := EK_RECORD; f^.ival := 0; f^.op := 0;
       f^.noff := field_off; f^.nlen := field_len;
       f^.left := val_e; f^.right := nil; f^.extra := nil; f^.pat := nil;
       if head = nil then head := f else tail^.right := f;
@@ -886,7 +892,7 @@ begin
   if tok = TK_INT then begin
     parse_pattern_atom := mk_pat_int(tok_int); lex_next; exit end;
   if tok = TK_STRING then begin
-    new(p); p^.pk := PK_STRING; p^.ival := 0; p^.noff := tok_str_off; p^.nlen := tok_str_len; p^.sub1 := nil; p^.sub2 := nil;
+    new(p); p^.next_alloc := pat_alloc_head; pat_alloc_head := p; p^.pk := PK_STRING; p^.ival := 0; p^.noff := tok_str_off; p^.nlen := tok_str_len; p^.sub1 := nil; p^.sub2 := nil;
     parse_pattern_atom := p; lex_next; exit end;
   if tok = TK_MINUS then begin
     lex_next;
@@ -1134,7 +1140,9 @@ begin env_lookup := nil; cur := env;
   eval_error := true end;
 function env_extend(env: PEnv; noff, nlen: integer; v: PVal): PEnv;
 var e: PEnv;
-begin new(e); e^.noff := noff; e^.nlen := nlen; e^.val := v; e^.next := env; env_extend := e end;
+begin new(e);
+  e^.next_alloc := env_alloc_head; env_alloc_head := e;
+   e^.noff := noff; e^.nlen := nlen; e^.val := v; e^.next := env; env_extend := e end;
 function name_has_dot(noff, nlen: integer): boolean;
 var i: integer;
 begin
@@ -1159,40 +1167,40 @@ begin
 end;
 function mk_val_int(v: integer): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_INT; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_int := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_INT; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_int := p end;
 function mk_val_bool(v: integer): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_BOOL; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_bool := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_BOOL; p^.ival := v; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_bool := p end;
 function mk_val_closure(noff, nlen: integer; body: PExpr; env: PEnv): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_CLOSURE; p^.ival := 0; p^.noff := noff; p^.nlen := nlen; p^.body := body; p^.cenv := env; p^.head := nil; p^.tail := nil; mk_val_closure := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_CLOSURE; p^.ival := 0; p^.noff := noff; p^.nlen := nlen; p^.body := body; p^.cenv := env; p^.head := nil; p^.tail := nil; mk_val_closure := p end;
 function mk_val_nil: PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_NIL; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_nil := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_NIL; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_nil := p end;
 function mk_val_cons(h, t: PVal): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_CONS; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := h; p^.tail := t; mk_val_cons := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_CONS; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := h; p^.tail := t; mk_val_cons := p end;
 function mk_val_pair(a, b: PVal): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_PAIR; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := a; p^.tail := b; mk_val_pair := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_PAIR; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := a; p^.tail := b; mk_val_pair := p end;
 function mk_val_none: PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_NONE; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_none := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_NONE; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_none := p end;
 function mk_val_some(x: PVal): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := x; p^.tail := nil; mk_val_some := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_SOME; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := x; p^.tail := nil; mk_val_some := p end;
 function mk_val_string(off, len: integer): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_STRING; p^.ival := 0; p^.noff := off; p^.nlen := len; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_string := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_STRING; p^.ival := 0; p^.noff := off; p^.nlen := len; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_string := p end;
 function mk_val_unit: PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_UNIT; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_unit := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_UNIT; p^.ival := 0; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_unit := p end;
 function mk_val_ctor(tag: integer): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_ctor := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := nil; p^.tail := nil; mk_val_ctor := p end;
 function mk_val_ctor_arg(tag: integer; arg: PVal): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := arg; p^.tail := nil; mk_val_ctor_arg := p end;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_CTOR; p^.ival := tag; p^.noff := 0; p^.nlen := 0; p^.body := nil; p^.cenv := nil; p^.head := arg; p^.tail := nil; mk_val_ctor_arg := p end;
 procedure intern_print_int;
 begin print_int_noff := name_pool_len;
   name_pool[name_pool_len] := 'p'; name_pool_len := name_pool_len+1;
@@ -1827,7 +1835,7 @@ begin
   2=has fn+acc for fold). Stages 1/2 are detected in EK_APP dispatch. }
 function mk_partial(noff, nlen, stage: integer; f, acc: PVal): PVal;
 var p: PVal;
-begin new(p); p^.vk := VK_CLOSURE; p^.ival := stage;
+begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_CLOSURE; p^.ival := stage;
   p^.noff := noff; p^.nlen := nlen;
   p^.body := nil; p^.cenv := nil;
   p^.head := f; p^.tail := acc;
@@ -1851,13 +1859,13 @@ begin eval_expr := nil;
     while e <> nil do begin
       rv := eval_expr(e^.left, env);
       if eval_error then exit;
-      new(fieldv); fieldv^.vk := VK_FIELD; fieldv^.ival := 0;
+      new(fieldv); fieldv^.next_alloc := val_alloc_head; val_alloc_head := fieldv; fieldv^.vk := VK_FIELD; fieldv^.ival := 0;
       fieldv^.noff := e^.noff; fieldv^.nlen := e^.nlen;
       fieldv^.body := nil; fieldv^.cenv := nil; fieldv^.head := rv; fieldv^.tail := rec_head;
       rec_head := fieldv;
       e := e^.right
     end;
-    new(refv); refv^.vk := VK_RECORD; refv^.ival := 0; refv^.noff := 0; refv^.nlen := 0;
+    new(refv); refv^.next_alloc := val_alloc_head; val_alloc_head := refv; refv^.vk := VK_RECORD; refv^.ival := 0; refv^.noff := 0; refv^.nlen := 0;
     refv^.body := nil; refv^.cenv := nil; refv^.head := rec_head; refv^.tail := nil;
     eval_expr := refv;
     exit
@@ -2157,7 +2165,7 @@ begin eval_expr := nil;
           crlf;
           eval_expr := mk_val_string(a, string_pool_len - a); exit end;
         if names_equal(fv^.noff, fv^.nlen, ref_noff, ref_nlen) then begin
-          new(refv); refv^.vk := VK_REF; refv^.ival := 0; refv^.noff := 0; refv^.nlen := 0;
+          new(refv); refv^.next_alloc := val_alloc_head; val_alloc_head := refv; refv^.vk := VK_REF; refv^.ival := 0; refv^.noff := 0; refv^.nlen := 0;
           refv^.body := nil; refv^.cenv := nil; refv^.head := av; refv^.tail := nil;
           eval_expr := refv; exit end;
         if names_equal(fv^.noff, fv^.nlen, exit_noff, exit_nlen) then begin
@@ -2451,6 +2459,8 @@ begin
   name_pool_len := 0;
   string_pool_len := 0;
   ctor_count := 0;
+  expr_alloc_head := nil; pat_alloc_head := nil;
+  val_alloc_head := nil; env_alloc_head := nil;
   intern_print_int;
   intern_board;
   intern_wildcard;
