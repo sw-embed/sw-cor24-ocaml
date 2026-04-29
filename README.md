@@ -165,6 +165,26 @@ let rec map = fun f l -> match l with [] -> [] | h :: t -> f h :: map f t in map
 - `docs/module-system.md` -- Multi-file module MVP
 - `docs/research.txt` -- Research notes on OCaml implementation strategy
 
+## Sibling repos
+
+| Repo | Role |
+|------|------|
+| [sw-cor24-pascal](https://github.com/sw-embed/sw-cor24-pascal) | Pascal compiler (`p24p`) and runtime |
+| [sw-cor24-pcode](https://github.com/sw-embed/sw-cor24-pcode) | P-code VM, assembler, linker |
+| [sw-cor24-emulator](https://github.com/sw-embed/sw-cor24-emulator) | COR24 hardware emulator |
+| [sw-cor24-basic](https://github.com/sw-embed/sw-cor24-basic) | BASIC interpreter (sibling pattern) |
+| [web-sw-cor24-ocaml](https://github.com/sw-embed/web-sw-cor24-ocaml) | Browser OCaml sandbox |
+
+## Links
+
+- Blog: [Software Wrighter Lab](https://software-wrighter-lab.github.io/)
+- Discord: [Join the community](https://discord.com/invite/Ctzk5uHggZ)
+- YouTube: [Software Wrighter](https://www.youtube.com/@SoftwareWrighter)
+
+## Copyright
+
+Copyright (c) 2026 Michael A. Wright
+
 ## License
 
-MIT License. See `LICENSE` for details.
+MIT -- see [LICENSE](LICENSE) for details.
