@@ -151,7 +151,7 @@ UART_INPUT="${ML_INPUT}"$'\x04'"${OCAML_STDIN:-}"
   --load-binary "$BUILD_DIR/ocaml.p24m@0x040000" \
   --patch "0x${CODE_PTR}=0x040000" \
   --patch "0x${HEAP_LIMIT}=0x03F000" \
-  --entry 0 -u "${UART_INPUT}" --speed 0 -n "$MAX_INSTRS" 2>&1 | \
+  --entry 0 -u "${UART_INPUT}" --speed 0 -n "$MAX_INSTRS" -t 120 2>&1 | \
   awk '
     /^UART output:/ { in_out = 1; sub(/^UART output: /, ""); }
     /^Executed / { in_out = 0 }

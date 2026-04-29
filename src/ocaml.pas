@@ -1845,6 +1845,156 @@ begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_
   p^.head := f; p^.tail := acc;
   mk_partial := p end;
 
+{ === GC: mark/sweep over per-type alloc lists ===
+  Single procedure with iterative fixed-point marking — avoids mutual
+  recursion between mark_expr/mark_pat/mark_val/mark_env. Walks each
+  alloc list repeatedly, propagating mark bits to referents based on
+  per-kind field semantics, until stable. Then sweeps unmarked nodes
+  via Pascal dispose() (-> sys_free). See docs/gc-design.md. }
+procedure gc_collect(extra_root: PEnv);
+var
+  ce, ne: PExpr; cp, np: PPat;
+  cv, nv: PVal; cn, nn: PEnv;
+  changed: boolean;
+begin
+  { Pass 1: clear all mark bits }
+  ce := expr_alloc_head; while ce <> nil do begin ce^.mark_bit := 0; ce := ce^.next_alloc end;
+  cp := pat_alloc_head;  while cp <> nil do begin cp^.mark_bit := 0; cp := cp^.next_alloc end;
+  cv := val_alloc_head;  while cv <> nil do begin cv^.mark_bit := 0; cv := cv^.next_alloc end;
+  cn := env_alloc_head;  while cn <> nil do begin cn^.mark_bit := 0; cn := cn^.next_alloc end;
+
+  { Pass 2: prime mark from top_env (REPL root) and extra_root (current
+    eval frame's env, when called mid-eval). Both walk the env chain
+    via ^.next; values bound in eval frames hang off entries that
+    extend top_env, so marking from extra_root covers them. }
+  cn := top_env;
+  while cn <> nil do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := extra_root;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin
+    cn^.mark_bit := 1;
+    cn := cn^.next
+  end;
+
+  { Pass 3: iterative fixed-point — walk alloc lists, propagate marks.
+    p24p has no chained `a^.b^.c` deref, so each access goes through a
+    same-type temp pointer. }
+  changed := true;
+  while changed do begin
+    changed := false;
+    cn := env_alloc_head;
+    while cn <> nil do begin
+      if cn^.mark_bit = 1 then begin
+        nv := cn^.val;
+        if nv <> nil then if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
+        nn := cn^.next;
+        if nn <> nil then if nn^.mark_bit = 0 then begin nn^.mark_bit := 1; changed := true end
+      end;
+      cn := cn^.next_alloc
+    end;
+    cv := val_alloc_head;
+    while cv <> nil do begin
+      if cv^.mark_bit = 1 then begin
+        nv := cv^.head;
+        if nv <> nil then
+          if (cv^.vk = VK_CLOSURE) or (cv^.vk = VK_CONS) or (cv^.vk = VK_PAIR) or
+             (cv^.vk = VK_SOME) or (cv^.vk = VK_CTOR) or (cv^.vk = VK_FIELD) or
+             (cv^.vk = VK_RECORD) or (cv^.vk = VK_REF) then
+            if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
+        nv := cv^.tail;
+        if nv <> nil then
+          if (cv^.vk = VK_CLOSURE) or (cv^.vk = VK_CONS) or (cv^.vk = VK_PAIR) or
+             (cv^.vk = VK_FIELD) then
+            if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
+        if cv^.vk = VK_CLOSURE then begin
+          ne := cv^.body;
+          if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
+          nn := cv^.cenv;
+          if nn <> nil then if nn^.mark_bit = 0 then begin nn^.mark_bit := 1; changed := true end
+        end
+      end;
+      cv := cv^.next_alloc
+    end;
+    ce := expr_alloc_head;
+    while ce <> nil do begin
+      if ce^.mark_bit = 1 then begin
+        ne := ce^.left;
+        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
+        ne := ce^.right;
+        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
+        ne := ce^.extra;
+        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
+        np := ce^.pat;
+        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end
+      end;
+      ce := ce^.next_alloc
+    end;
+    cp := pat_alloc_head;
+    while cp <> nil do begin
+      if cp^.mark_bit = 1 then begin
+        np := cp^.sub1;
+        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end;
+        np := cp^.sub2;
+        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end
+      end;
+      cp := cp^.next_alloc
+    end
+  end;
+
+  { Pass 4: sweep — for each list, skip-and-dispose unmarked from head,
+    then walk forward splicing unmarked successors. }
+  ce := expr_alloc_head;
+  while (ce <> nil) and (ce^.mark_bit = 0) do begin
+    ne := ce^.next_alloc; dispose(ce); ce := ne
+  end;
+  expr_alloc_head := ce;
+  while ce <> nil do begin
+    ne := ce^.next_alloc;
+    while (ne <> nil) and (ne^.mark_bit = 0) do begin
+      ce^.next_alloc := ne^.next_alloc; dispose(ne); ne := ce^.next_alloc
+    end;
+    ce := ne
+  end;
+
+  cp := pat_alloc_head;
+  while (cp <> nil) and (cp^.mark_bit = 0) do begin
+    np := cp^.next_alloc; dispose(cp); cp := np
+  end;
+  pat_alloc_head := cp;
+  while cp <> nil do begin
+    np := cp^.next_alloc;
+    while (np <> nil) and (np^.mark_bit = 0) do begin
+      cp^.next_alloc := np^.next_alloc; dispose(np); np := cp^.next_alloc
+    end;
+    cp := np
+  end;
+
+  cv := val_alloc_head;
+  while (cv <> nil) and (cv^.mark_bit = 0) do begin
+    nv := cv^.next_alloc; dispose(cv); cv := nv
+  end;
+  val_alloc_head := cv;
+  while cv <> nil do begin
+    nv := cv^.next_alloc;
+    while (nv <> nil) and (nv^.mark_bit = 0) do begin
+      cv^.next_alloc := nv^.next_alloc; dispose(nv); nv := cv^.next_alloc
+    end;
+    cv := nv
+  end;
+
+  cn := env_alloc_head;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin
+    nn := cn^.next_alloc; dispose(cn); cn := nn
+  end;
+  env_alloc_head := cn;
+  while cn <> nil do begin
+    nn := cn^.next_alloc;
+    while (nn <> nil) and (nn^.mark_bit = 0) do begin
+      cn^.next_alloc := nn^.next_alloc; dispose(nn); nn := cn^.next_alloc
+    end;
+    cn := nn
+  end
+end;
+
 function eval_expr(e: PExpr; env: PEnv): PVal;
 var lv, rv, fv, av, refv, rec_head, fieldv, cur_field: PVal; l, r, x, bd, arm: PExpr; ne, ce: PEnv; a, b, res: integer;
 begin eval_expr := nil;
@@ -2458,148 +2608,6 @@ begin
   write('<?>')
 end;
 
-{ === GC: mark/sweep over per-type alloc lists ===
-  Single procedure with iterative fixed-point marking — avoids mutual
-  recursion between mark_expr/mark_pat/mark_val/mark_env. Walks each
-  alloc list repeatedly, propagating mark bits to referents based on
-  per-kind field semantics, until stable. Then sweeps unmarked nodes
-  via Pascal dispose() (-> sys_free). See docs/gc-design.md. }
-procedure gc_collect;
-var
-  ce, ne: PExpr; cp, np: PPat;
-  cv, nv: PVal; cn, nn: PEnv;
-  changed: boolean;
-begin
-  { Pass 1: clear all mark bits }
-  ce := expr_alloc_head; while ce <> nil do begin ce^.mark_bit := 0; ce := ce^.next_alloc end;
-  cp := pat_alloc_head;  while cp <> nil do begin cp^.mark_bit := 0; cp := cp^.next_alloc end;
-  cv := val_alloc_head;  while cv <> nil do begin cv^.mark_bit := 0; cv := cv^.next_alloc end;
-  cn := env_alloc_head;  while cn <> nil do begin cn^.mark_bit := 0; cn := cn^.next_alloc end;
-
-  { Pass 2: prime mark from top_env (sole root) }
-  cn := top_env;
-  while cn <> nil do begin cn^.mark_bit := 1; cn := cn^.next end;
-
-  { Pass 3: iterative fixed-point — walk alloc lists, propagate marks.
-    p24p has no chained `a^.b^.c` deref, so each access goes through a
-    same-type temp pointer. }
-  changed := true;
-  while changed do begin
-    changed := false;
-    cn := env_alloc_head;
-    while cn <> nil do begin
-      if cn^.mark_bit = 1 then begin
-        nv := cn^.val;
-        if nv <> nil then if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
-        nn := cn^.next;
-        if nn <> nil then if nn^.mark_bit = 0 then begin nn^.mark_bit := 1; changed := true end
-      end;
-      cn := cn^.next_alloc
-    end;
-    cv := val_alloc_head;
-    while cv <> nil do begin
-      if cv^.mark_bit = 1 then begin
-        nv := cv^.head;
-        if nv <> nil then
-          if (cv^.vk = VK_CLOSURE) or (cv^.vk = VK_CONS) or (cv^.vk = VK_PAIR) or
-             (cv^.vk = VK_SOME) or (cv^.vk = VK_CTOR) or (cv^.vk = VK_FIELD) or
-             (cv^.vk = VK_RECORD) or (cv^.vk = VK_REF) then
-            if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
-        nv := cv^.tail;
-        if nv <> nil then
-          if (cv^.vk = VK_CLOSURE) or (cv^.vk = VK_CONS) or (cv^.vk = VK_PAIR) or
-             (cv^.vk = VK_FIELD) then
-            if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
-        if cv^.vk = VK_CLOSURE then begin
-          ne := cv^.body;
-          if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
-          nn := cv^.cenv;
-          if nn <> nil then if nn^.mark_bit = 0 then begin nn^.mark_bit := 1; changed := true end
-        end
-      end;
-      cv := cv^.next_alloc
-    end;
-    ce := expr_alloc_head;
-    while ce <> nil do begin
-      if ce^.mark_bit = 1 then begin
-        ne := ce^.left;
-        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
-        ne := ce^.right;
-        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
-        ne := ce^.extra;
-        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
-        np := ce^.pat;
-        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end
-      end;
-      ce := ce^.next_alloc
-    end;
-    cp := pat_alloc_head;
-    while cp <> nil do begin
-      if cp^.mark_bit = 1 then begin
-        np := cp^.sub1;
-        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end;
-        np := cp^.sub2;
-        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end
-      end;
-      cp := cp^.next_alloc
-    end
-  end;
-
-  { Pass 4: sweep — for each list, skip-and-dispose unmarked from head,
-    then walk forward splicing unmarked successors. }
-  ce := expr_alloc_head;
-  while (ce <> nil) and (ce^.mark_bit = 0) do begin
-    ne := ce^.next_alloc; dispose(ce); ce := ne
-  end;
-  expr_alloc_head := ce;
-  while ce <> nil do begin
-    ne := ce^.next_alloc;
-    while (ne <> nil) and (ne^.mark_bit = 0) do begin
-      ce^.next_alloc := ne^.next_alloc; dispose(ne); ne := ce^.next_alloc
-    end;
-    ce := ne
-  end;
-
-  cp := pat_alloc_head;
-  while (cp <> nil) and (cp^.mark_bit = 0) do begin
-    np := cp^.next_alloc; dispose(cp); cp := np
-  end;
-  pat_alloc_head := cp;
-  while cp <> nil do begin
-    np := cp^.next_alloc;
-    while (np <> nil) and (np^.mark_bit = 0) do begin
-      cp^.next_alloc := np^.next_alloc; dispose(np); np := cp^.next_alloc
-    end;
-    cp := np
-  end;
-
-  cv := val_alloc_head;
-  while (cv <> nil) and (cv^.mark_bit = 0) do begin
-    nv := cv^.next_alloc; dispose(cv); cv := nv
-  end;
-  val_alloc_head := cv;
-  while cv <> nil do begin
-    nv := cv^.next_alloc;
-    while (nv <> nil) and (nv^.mark_bit = 0) do begin
-      cv^.next_alloc := nv^.next_alloc; dispose(nv); nv := cv^.next_alloc
-    end;
-    cv := nv
-  end;
-
-  cn := env_alloc_head;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin
-    nn := cn^.next_alloc; dispose(cn); cn := nn
-  end;
-  env_alloc_head := cn;
-  while cn <> nil do begin
-    nn := cn^.next_alloc;
-    while (nn <> nil) and (nn^.mark_bit = 0) do begin
-      cn^.next_alloc := nn^.next_alloc; dispose(nn); nn := cn^.next_alloc
-    end;
-    cn := nn
-  end
-end;
-
 { === Main: REPL loop === }
 begin
   name_pool_len := 0;
@@ -2625,7 +2633,7 @@ begin
   current_module_len := 0;
   top_env := nil;
   while (not eof) and (not exit_requested) do begin
-    gc_collect;
+    gc_collect(nil);
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);
     putc_ch := ' '; write(putc_ch);
