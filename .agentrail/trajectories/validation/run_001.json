@@ -1,0 +1,11 @@
+{
+  "task_type": "validation",
+  "state": {
+    "number": 7,
+    "step": "stress-test-and-issue-28"
+  },
+  "action": "Added tests/stress_gc.ml (100 alloc-heavy transactions), wired into reg-rs as stress_gc, just test 101/101; closed GitHub issues #28 (already closed) and #29 with summary comments",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-29T09:18:47"
+}
