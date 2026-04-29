@@ -1,0 +1,11 @@
+{
+  "task_type": "feature",
+  "state": {
+    "number": 6,
+    "step": "mark-sweep"
+  },
+  "action": "Single gc_collect procedure with iterative fixed-point marking + sweep via dispose; wired at REPL boundary; #28 repro completes in 8.4B instructions with expected token output; filed sw-cor24-pascal#22 for PROC_NAME_SIZE coupling that blocks recursive marker speedup",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-04-29T08:50:45"
+}
