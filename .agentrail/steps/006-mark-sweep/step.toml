@@ -1,6 +1,6 @@
 number = 6
 slug = "mark-sweep"
-status = "pending"
+status = "in-progress"
 description = """
 # Step: mark-sweep
 

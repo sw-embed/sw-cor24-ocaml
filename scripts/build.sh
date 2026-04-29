@@ -39,7 +39,7 @@ mkdir -p "$BUILD_DIR"
 echo "Building OCaml interpreter for COR24 (module mode)..."
 
 echo "  [1/4] Compiling Pascal -> .spc (p24p)..."
-SPC_OUTPUT=$("$COR24_RUN" --run "$P24P_S" -u "$(cat "$SRC")"$'\x04' --speed 0 -t 120 -n "$MAX_INSTRS" 2>&1 | \
+SPC_OUTPUT=$("$COR24_RUN" --run "$P24P_S" --stack-kilobytes 8 -u "$(cat "$SRC")"$'\x04' --speed 0 -t 120 -n "$MAX_INSTRS" 2>&1 | \
   grep -v '^\[UART' | sed 's/^UART output: //')
 
 if [[ "$SPC_OUTPUT" != *"; OK"* ]]; then
