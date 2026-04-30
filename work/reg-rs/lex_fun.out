@@ -1,0 +1,13 @@
+LET let
+IDENT f
+EQ
+FUN fun
+IDENT x
+ARROW
+IDENT x
+PLUS
+INT 1
+IN in
+IDENT f
+INT 41
+EOF
