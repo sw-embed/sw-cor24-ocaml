@@ -141,6 +141,19 @@ var
   ast: PExpr; result: PVal; top_env: PEnv;
   expr_alloc_head: PExpr; pat_alloc_head: PPat;
   val_alloc_head: PVal; env_alloc_head: PEnv;
+  gc_pin: PVal;
+  gc_iter: integer;
+  { 8-slot env pin stack — outer eval frame's `env` parameter is a
+    Pascal local invisible to inner gc. Each recursive eval_expr call
+    pushes the caller's env into this stack so it stays a gc root.
+    Depth 8 is enough for typical eval (depth = number of non-tail
+    recursive eval_expr nestings; tail-call optimization keeps most
+    inner work flat). }
+  gc_env_0, gc_env_1, gc_env_2, gc_env_3: PEnv;
+  gc_env_4, gc_env_5, gc_env_6, gc_env_7: PEnv;
+  gc_env_8, gc_env_9, gc_env_10, gc_env_11: PEnv;
+  gc_env_12, gc_env_13, gc_env_14, gc_env_15: PEnv;
+  gc_env_top: integer;
 
 function pool_intern: integer;
 var start, j: integer;
@@ -1851,6 +1864,34 @@ begin new(p); p^.next_alloc := val_alloc_head; val_alloc_head := p; p^.vk := VK_
   alloc list repeatedly, propagating mark bits to referents based on
   per-kind field semantics, until stable. Then sweeps unmarked nodes
   via Pascal dispose() (-> sys_free). See docs/gc-design.md. }
+procedure gc_push_env(e: PEnv);
+begin
+  if gc_env_top < 16 then begin
+    if gc_env_top = 0 then gc_env_0 := e
+    else if gc_env_top = 1 then gc_env_1 := e
+    else if gc_env_top = 2 then gc_env_2 := e
+    else if gc_env_top = 3 then gc_env_3 := e
+    else if gc_env_top = 4 then gc_env_4 := e
+    else if gc_env_top = 5 then gc_env_5 := e
+    else if gc_env_top = 6 then gc_env_6 := e
+    else if gc_env_top = 7 then gc_env_7 := e
+    else if gc_env_top = 8 then gc_env_8 := e
+    else if gc_env_top = 9 then gc_env_9 := e
+    else if gc_env_top = 10 then gc_env_10 := e
+    else if gc_env_top = 11 then gc_env_11 := e
+    else if gc_env_top = 12 then gc_env_12 := e
+    else if gc_env_top = 13 then gc_env_13 := e
+    else if gc_env_top = 14 then gc_env_14 := e
+    else gc_env_15 := e
+  end;
+  gc_env_top := gc_env_top + 1
+end;
+
+procedure gc_pop_env;
+begin
+  if gc_env_top > 0 then gc_env_top := gc_env_top - 1
+end;
+
 procedure gc_collect(extra_root: PEnv);
 var
   ce, ne: PExpr; cp, np: PPat;
@@ -1874,6 +1915,41 @@ begin
     cn^.mark_bit := 1;
     cn := cn^.next
   end;
+  if gc_pin <> nil then if gc_pin^.mark_bit = 0 then gc_pin^.mark_bit := 1;
+  if ast <> nil then if ast^.mark_bit = 0 then ast^.mark_bit := 1;
+  { Env pin stack: walk each pinned env via .next chain. }
+  cn := gc_env_0;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_1;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_2;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_3;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_4;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_5;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_6;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_7;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_8;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_9;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_10;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_11;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_12;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_13;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_14;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
+  cn := gc_env_15;
+  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
 
   { Pass 3: iterative fixed-point — walk alloc lists, propagate marks.
     p24p has no chained `a^.b^.c` deref, so each access goes through a
@@ -2002,6 +2078,8 @@ begin eval_expr := nil;
     MATCH/APP bodies) reassign (e, env) and loop rather than recursing,
     so recursive OCaml programs run in constant Pascal-stack space. }
   while true do begin
+  gc_iter := gc_iter + 1;
+  if gc_iter >= 256 then begin gc_iter := 0; gc_collect(env) end;
   if e = nil then begin eval_error := true; exit end;
   if e^.kind = EK_INT then begin eval_expr := mk_val_int(e^.ival); exit end;
   if e^.kind = EK_BOOL then begin eval_expr := mk_val_bool(e^.ival); exit end;
@@ -2135,7 +2213,15 @@ begin eval_expr := nil;
     eval_expr := env_lookup(env, e^.noff, e^.nlen); exit end;
   if e^.kind = EK_BINOP then begin
     l := e^.left; r := e^.right;
-    lv := eval_expr(l, env); rv := eval_expr(r, env);
+    gc_push_env(env);
+    lv := eval_expr(l, env);
+    gc_pop_env;
+    if eval_error then exit;
+    gc_pin := mk_val_cons(lv, gc_pin);
+    gc_push_env(env);
+    rv := eval_expr(r, env);
+    gc_pop_env;
+    gc_pin := gc_pin^.tail;
     if eval_error then exit;
     if e^.op = OP_CONS then begin
       eval_expr := mk_val_cons(lv, rv); exit
@@ -2199,7 +2285,11 @@ begin eval_expr := nil;
     if (e^.op >= OP_EQ) and (e^.op <= OP_OR) then eval_expr := mk_val_bool(res)
     else eval_expr := mk_val_int(res); exit end;
   if e^.kind = EK_UNARY then begin
-    l := e^.left; lv := eval_expr(l, env); if eval_error then exit;
+    l := e^.left;
+    gc_push_env(env);
+    lv := eval_expr(l, env);
+    gc_pop_env;
+    if eval_error then exit;
     if e^.op = OP_DEREF then begin
       if lv^.vk <> VK_REF then begin eval_error := true; exit end;
       eval_expr := lv^.head;
@@ -2207,7 +2297,11 @@ begin eval_expr := nil;
     end;
     if lv^.ival=0 then eval_expr := mk_val_bool(1) else eval_expr := mk_val_bool(0); exit end;
   if e^.kind = EK_IF then begin
-    l := e^.left; lv := eval_expr(l, env); if eval_error then exit;
+    l := e^.left;
+    gc_push_env(env);
+    lv := eval_expr(l, env);
+    gc_pop_env;
+    if eval_error then exit;
     if lv^.ival <> 0 then e := e^.right
     else e := e^.extra end
   else if e^.kind = EK_LET then begin
@@ -2237,14 +2331,19 @@ begin eval_expr := nil;
         arm := arm^.extra
       end
     end else begin
-      lv := eval_expr(l, env); if eval_error then exit;
+      gc_push_env(env);
+      lv := eval_expr(l, env);
+      gc_pop_env;
+      if eval_error then exit;
       ne := env_extend(env, e^.noff, e^.nlen, lv) end;
     e := e^.right; env := ne end
   else if e^.kind = EK_FUN then begin
     eval_expr := mk_val_closure(e^.noff, e^.nlen, e^.left, env); exit end
   else if e^.kind = EK_MATCH then begin
     l := e^.left;
+    gc_push_env(env);
     lv := eval_expr(l, env);
+    gc_pop_env;
     if eval_error then exit;
     arm := e^.right;
     bd := nil;
@@ -2262,8 +2361,18 @@ begin eval_expr := nil;
     if bd = nil then begin eval_error := true; exit end;
     e := bd; env := ne end
   else if e^.kind = EK_APP then begin
-    l := e^.left; fv := eval_expr(l, env); if eval_error then exit;
-    r := e^.right; av := eval_expr(r, env); if eval_error then exit;
+    l := e^.left;
+    gc_push_env(env);
+    fv := eval_expr(l, env);
+    gc_pop_env;
+    if eval_error then exit;
+    gc_pin := mk_val_cons(fv, gc_pin);
+    r := e^.right;
+    gc_push_env(env);
+    av := eval_expr(r, env);
+    gc_pop_env;
+    gc_pin := gc_pin^.tail;
+    if eval_error then exit;
     if fv^.vk <> VK_CLOSURE then begin eval_error := true; exit end;
     if fv^.body = nil then begin
         if names_equal(fv^.noff, fv^.nlen, print_int_noff, print_int_nlen) then begin
@@ -2615,6 +2724,12 @@ begin
   ctor_count := 0;
   expr_alloc_head := nil; pat_alloc_head := nil;
   val_alloc_head := nil; env_alloc_head := nil;
+  gc_pin := nil; gc_iter := 0;
+  gc_env_0 := nil; gc_env_1 := nil; gc_env_2 := nil; gc_env_3 := nil;
+  gc_env_4 := nil; gc_env_5 := nil; gc_env_6 := nil; gc_env_7 := nil;
+  gc_env_8 := nil; gc_env_9 := nil; gc_env_10 := nil; gc_env_11 := nil;
+  gc_env_12 := nil; gc_env_13 := nil; gc_env_14 := nil; gc_env_15 := nil;
+  gc_env_top := 0;
   intern_print_int;
   intern_board;
   intern_wildcard;
@@ -2634,6 +2749,8 @@ begin
   top_env := nil;
   while (not eof) and (not exit_requested) do begin
     gc_collect(nil);
+    gc_iter := 0;
+    gc_pin := nil;
     { Print prompt: "> " }
     putc_ch := '>'; write(putc_ch);
     putc_ch := ' '; write(putc_ch);
