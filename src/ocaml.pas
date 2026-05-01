@@ -2031,7 +2031,7 @@ begin eval_expr := nil;
     so recursive OCaml programs run in constant Pascal-stack space. }
   while true do begin
   gc_iter := gc_iter + 1;
-  if gc_iter >= 256 then begin gc_iter := 0; gc_collect(env) end;
+  if gc_iter >= 1024 then begin gc_iter := 0; gc_collect(env) end;
   if e = nil then begin eval_error := true; exit end;
   if e^.kind = EK_INT then begin eval_expr := mk_val_int(e^.ival); exit end;
   if e^.kind = EK_BOOL then begin eval_expr := mk_val_bool(e^.ival); exit end;
