@@ -1892,6 +1892,55 @@ begin
   if gc_env_top > 0 then gc_env_top := gc_env_top - 1
 end;
 
+procedure gc_mark_pat(p: PPat);
+begin
+  if p = nil then exit;
+  if p^.mark_bit <> 0 then exit;
+  p^.mark_bit := 1;
+  gc_mark_pat(p^.sub1);
+  gc_mark_pat(p^.sub2)
+end;
+
+procedure gc_mark_expr(p: PExpr);
+begin
+  if p = nil then exit;
+  if p^.mark_bit <> 0 then exit;
+  p^.mark_bit := 1;
+  gc_mark_expr(p^.left);
+  gc_mark_expr(p^.right);
+  gc_mark_expr(p^.extra);
+  gc_mark_pat(p^.pat)
+end;
+
+procedure gc_mark_val(p: PVal); forward;
+
+procedure gc_mark_env(p: PEnv);
+begin
+  if p = nil then exit;
+  if p^.mark_bit <> 0 then exit;
+  p^.mark_bit := 1;
+  gc_mark_val(p^.val);
+  gc_mark_env(p^.next)
+end;
+
+procedure gc_mark_val(p: PVal);
+begin
+  if p = nil then exit;
+  if p^.mark_bit <> 0 then exit;
+  p^.mark_bit := 1;
+  if (p^.vk = VK_CLOSURE) or (p^.vk = VK_CONS) or (p^.vk = VK_PAIR) or
+     (p^.vk = VK_SOME) or (p^.vk = VK_CTOR) or (p^.vk = VK_FIELD) or
+     (p^.vk = VK_RECORD) or (p^.vk = VK_REF) then
+    gc_mark_val(p^.head);
+  if (p^.vk = VK_CLOSURE) or (p^.vk = VK_CONS) or (p^.vk = VK_PAIR) or
+     (p^.vk = VK_FIELD) then
+    gc_mark_val(p^.tail);
+  if p^.vk = VK_CLOSURE then begin
+    gc_mark_expr(p^.body);
+    gc_mark_env(p^.cenv)
+  end
+end;
+
 procedure gc_collect(extra_root: PEnv);
 var
   ce, ne: PExpr; cp, np: PPat;
@@ -1904,117 +1953,20 @@ begin
   cv := val_alloc_head;  while cv <> nil do begin cv^.mark_bit := 0; cv := cv^.next_alloc end;
   cn := env_alloc_head;  while cn <> nil do begin cn^.mark_bit := 0; cn := cn^.next_alloc end;
 
-  { Pass 2: prime mark from top_env (REPL root) and extra_root (current
-    eval frame's env, when called mid-eval). Both walk the env chain
-    via ^.next; values bound in eval frames hang off entries that
-    extend top_env, so marking from extra_root covers them. }
-  cn := top_env;
-  while cn <> nil do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := extra_root;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin
-    cn^.mark_bit := 1;
-    cn := cn^.next
-  end;
-  if gc_pin <> nil then if gc_pin^.mark_bit = 0 then gc_pin^.mark_bit := 1;
-  if ast <> nil then if ast^.mark_bit = 0 then ast^.mark_bit := 1;
-  { Env pin stack: walk each pinned env via .next chain. }
-  cn := gc_env_0;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_1;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_2;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_3;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_4;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_5;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_6;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_7;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_8;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_9;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_10;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_11;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_12;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_13;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_14;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-  cn := gc_env_15;
-  while (cn <> nil) and (cn^.mark_bit = 0) do begin cn^.mark_bit := 1; cn := cn^.next end;
-
-  { Pass 3: iterative fixed-point — walk alloc lists, propagate marks.
-    p24p has no chained `a^.b^.c` deref, so each access goes through a
-    same-type temp pointer. }
-  changed := true;
-  while changed do begin
-    changed := false;
-    cn := env_alloc_head;
-    while cn <> nil do begin
-      if cn^.mark_bit = 1 then begin
-        nv := cn^.val;
-        if nv <> nil then if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
-        nn := cn^.next;
-        if nn <> nil then if nn^.mark_bit = 0 then begin nn^.mark_bit := 1; changed := true end
-      end;
-      cn := cn^.next_alloc
-    end;
-    cv := val_alloc_head;
-    while cv <> nil do begin
-      if cv^.mark_bit = 1 then begin
-        nv := cv^.head;
-        if nv <> nil then
-          if (cv^.vk = VK_CLOSURE) or (cv^.vk = VK_CONS) or (cv^.vk = VK_PAIR) or
-             (cv^.vk = VK_SOME) or (cv^.vk = VK_CTOR) or (cv^.vk = VK_FIELD) or
-             (cv^.vk = VK_RECORD) or (cv^.vk = VK_REF) then
-            if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
-        nv := cv^.tail;
-        if nv <> nil then
-          if (cv^.vk = VK_CLOSURE) or (cv^.vk = VK_CONS) or (cv^.vk = VK_PAIR) or
-             (cv^.vk = VK_FIELD) then
-            if nv^.mark_bit = 0 then begin nv^.mark_bit := 1; changed := true end;
-        if cv^.vk = VK_CLOSURE then begin
-          ne := cv^.body;
-          if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
-          nn := cv^.cenv;
-          if nn <> nil then if nn^.mark_bit = 0 then begin nn^.mark_bit := 1; changed := true end
-        end
-      end;
-      cv := cv^.next_alloc
-    end;
-    ce := expr_alloc_head;
-    while ce <> nil do begin
-      if ce^.mark_bit = 1 then begin
-        ne := ce^.left;
-        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
-        ne := ce^.right;
-        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
-        ne := ce^.extra;
-        if ne <> nil then if ne^.mark_bit = 0 then begin ne^.mark_bit := 1; changed := true end;
-        np := ce^.pat;
-        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end
-      end;
-      ce := ce^.next_alloc
-    end;
-    cp := pat_alloc_head;
-    while cp <> nil do begin
-      if cp^.mark_bit = 1 then begin
-        np := cp^.sub1;
-        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end;
-        np := cp^.sub2;
-        if np <> nil then if np^.mark_bit = 0 then begin np^.mark_bit := 1; changed := true end
-      end;
-      cp := cp^.next_alloc
-    end
-  end;
+  { Pass 2 + 3: recursive mark from all roots. O(N) instead of the old
+    O(N^2) iterative fixed-point. }
+  gc_mark_env(top_env);
+  gc_mark_env(extra_root);
+  gc_mark_val(gc_pin);
+  gc_mark_expr(ast);
+  gc_mark_env(gc_env_0); gc_mark_env(gc_env_1);
+  gc_mark_env(gc_env_2); gc_mark_env(gc_env_3);
+  gc_mark_env(gc_env_4); gc_mark_env(gc_env_5);
+  gc_mark_env(gc_env_6); gc_mark_env(gc_env_7);
+  gc_mark_env(gc_env_8); gc_mark_env(gc_env_9);
+  gc_mark_env(gc_env_10); gc_mark_env(gc_env_11);
+  gc_mark_env(gc_env_12); gc_mark_env(gc_env_13);
+  gc_mark_env(gc_env_14); gc_mark_env(gc_env_15);
 
   { Pass 4: sweep — for each list, skip-and-dispose unmarked from head,
     then walk forward splicing unmarked successors. }
