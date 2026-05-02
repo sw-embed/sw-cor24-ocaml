@@ -79,7 +79,19 @@ if [ -z "$HEAP_LIMIT" ]; then
   exit 1
 fi
 echo "$HEAP_LIMIT" > "$BUILD_DIR/heap_limit_addr.txt"
-echo "  [5/5] ok (code_ptr @ 0x$CODE_PTR, heap_limit @ 0x$HEAP_LIMIT)"
+CALL_STACK_BASE=$(grep -A1 "call_stack_base:" "$BUILD_DIR/pvm.lst" | tail -1 | awk '{print $1}' | tr -d ':')
+if [ -z "$CALL_STACK_BASE" ]; then
+  echo "Error: could not resolve call_stack_base from PVM listing" >&2
+  exit 1
+fi
+echo "$CALL_STACK_BASE" > "$BUILD_DIR/call_stack_base_addr.txt"
+CALL_STACK_LIMIT=$(grep -A1 "call_stack_limit:" "$BUILD_DIR/pvm.lst" | tail -1 | awk '{print $1}' | tr -d ':')
+if [ -z "$CALL_STACK_LIMIT" ]; then
+  echo "Error: could not resolve call_stack_limit from PVM listing" >&2
+  exit 1
+fi
+echo "$CALL_STACK_LIMIT" > "$BUILD_DIR/call_stack_limit_addr.txt"
+echo "  [5/5] ok (code_ptr @ 0x$CODE_PTR, heap_limit @ 0x$HEAP_LIMIT, call_stack @ 0x$CALL_STACK_BASE/0x$CALL_STACK_LIMIT)"
 
 echo ""
 echo "Build complete:"
@@ -88,3 +100,4 @@ echo "  ocaml.p24m (relocated to 0x040000, for cor24-run / regression / embedded
 echo "  pvm.bin    (for cor24-run path)"
 echo "  Code ptr:  0x$CODE_PTR"
 echo "  Heap lim:  0x$HEAP_LIMIT"
+echo "  Call stk:  0x$CALL_STACK_BASE / 0x$CALL_STACK_LIMIT"

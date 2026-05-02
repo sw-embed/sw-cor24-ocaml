@@ -124,6 +124,8 @@ source_for_repl() {
 
 CODE_PTR=$(cat "$BUILD_DIR/code_ptr_addr.txt")
 HEAP_LIMIT=$(cat "$BUILD_DIR/heap_limit_addr.txt")
+CALL_STACK_BASE=$(cat "$BUILD_DIR/call_stack_base_addr.txt")
+CALL_STACK_LIMIT=$(cat "$BUILD_DIR/call_stack_limit_addr.txt")
 ML_INPUT=""
 if [ "${#ARGS[@]}" -eq 1 ]; then
   ML="${ARGS[0]}"
@@ -151,6 +153,8 @@ UART_INPUT="${ML_INPUT}"$'\x04'"${OCAML_STDIN:-}"
   --load-binary "$BUILD_DIR/ocaml.p24m@0x040000" \
   --patch "0x${CODE_PTR}=0x040000" \
   --patch "0x${HEAP_LIMIT}=0x03F000" \
+  --patch "0x${CALL_STACK_BASE}=0x0FC000" \
+  --patch "0x${CALL_STACK_LIMIT}=0x100000" \
   --entry 0 -u "${UART_INPUT}" --speed 0 -n "$MAX_INSTRS" -t 120 2>&1 | \
   awk '
     /^UART output:/ { in_out = 1; sub(/^UART output: /, ""); }
