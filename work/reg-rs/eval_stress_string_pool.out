@@ -7,12 +7,11 @@
 > let s7 = String.make 1000 71
 > let s8 = String.make 1000 72
 > let s9 = String.make 1000 73
+> let s10 = String.make 10000 74
 > let _ = print_int (String.length s1)
 1000
-> let _ = putc 32
- 
 > let _ = print_int (String.length s9)
 1000
-> let _ = putc 32
- 
-> let _ = print_int (String.length s5)1000
+> let _ = print_int (String.length s5)
+1000
+> let _ = print_int (String.length s10)10000
